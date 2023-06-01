@@ -22,7 +22,7 @@ import pandas as pd
 #sys.path.append("/home/projects/vaccine/people/matjen/master_project/keras_src")
 #Directory with the model architecure
 
-import keras_utils
+import s99_project_functions
 import random
 
 # Set random seed
@@ -33,13 +33,13 @@ tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv('../data/train/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
+data = pd.read_csv('../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
 
 # Directories
 ####################
-##CHANGE DIRECTORY##
+##CHANGE PREFIX##
 ####################
-outdir = '../out'
+experiment_index = '01'
 
 #Define the list of peptides in the training data
 pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index)
@@ -47,7 +47,7 @@ pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index
 ### Model training parameters ###
 train_parts = {0, 1, 2, 3, 4} #Partitions
 dropout_rate = 0.6 #Dropout Rate
-encoding = keras_utils.blosum50_20aa #Encoding for amino acid sequences
+encoding = s99_project_functions.blosum50_20aa #Encoding for amino acid sequences
 
 #Padding to certain length
 a1_max = 7
@@ -92,13 +92,13 @@ dependencies = {
      
 def make_tf_ds(df, encoding):
     """Prepares the embedding for the input features to the model"""
-    encoded_pep = keras_utils.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5
-    encoded_a1 = keras_utils.enc_list_bl_max_len(df.A1, encoding, a1_max)/5
-    encoded_a2 = keras_utils.enc_list_bl_max_len(df.A2, encoding, a2_max)/5
-    encoded_a3 = keras_utils.enc_list_bl_max_len(df.A3, encoding, a3_max)/5
-    encoded_b1 = keras_utils.enc_list_bl_max_len(df.B1, encoding, b1_max)/5
-    encoded_b2 = keras_utils.enc_list_bl_max_len(df.B2, encoding, b2_max)/5
-    encoded_b3 = keras_utils.enc_list_bl_max_len(df.B3, encoding, b3_max)/5
+    encoded_pep = s99_project_functions.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5
+    encoded_a1 = s99_project_functions.enc_list_bl_max_len(df.A1, encoding, a1_max)/5
+    encoded_a2 = s99_project_functions.enc_list_bl_max_len(df.A2, encoding, a2_max)/5
+    encoded_a3 = s99_project_functions.enc_list_bl_max_len(df.A3, encoding, a3_max)/5
+    encoded_b1 = s99_project_functions.enc_list_bl_max_len(df.B1, encoding, b1_max)/5
+    encoded_b2 = s99_project_functions.enc_list_bl_max_len(df.B2, encoding, b2_max)/5
+    encoded_b3 = s99_project_functions.enc_list_bl_max_len(df.B3, encoding, b3_max)/5
     targets = df.binder.values
     tf_ds = [encoded_pep,
              encoded_a1, encoded_a2, encoded_a3, 
@@ -107,10 +107,6 @@ def make_tf_ds(df, encoding):
 
     return tf_ds
  
-#Creates the directory to save the model in
-if not os.path.exists(outdir):
-    os.makedirs(outdir)
-    
 #Prepare output dataframe (test predictions)
 pred_df = pd.DataFrame()
 
@@ -127,7 +123,7 @@ for t in train_parts:
         if v!=t:
             
             #Loading the model
-            model = keras.models.load_model(outdir+'/checkpoint/'+'t.'+str(t)+'.v.'+str(v)+".h5", custom_objects=dependencies)
+            model = keras.models.load_model('../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v), custom_objects=dependencies)
 
             #Prediction by one model
             avg_prediction += model.predict(x = {"pep": x_test[0],
@@ -147,4 +143,4 @@ for t in train_parts:
     pred_df = pd.concat([pred_df, x_test_df])
 
 # Save predictions
-pred_df.to_csv(outdir + '/cv_pred_df.csv', index=False)
+pred_df.to_csv(outdir + '../data/s02_e{}_predictions.csv'.format(experiment_index,t,v), index=False)

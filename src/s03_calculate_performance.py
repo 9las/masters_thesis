@@ -8,16 +8,6 @@ from sklearn.metrics import roc_auc_score
 
 data = pd.read_csv(filepath_or_buffer = '../out/cv_pred_df.csv')
 
-#def ppv(y_true, y_score, threshold):
-#    """Calculate positive predictive value (PPV)"""
-#    n_total = len(y_score)
-#    n_top = round(n_total * threshold)
-#    index_sorted = y_score.argsort()[:n_total-n_top-1:-1]
-#    n_y_true_top = y_true[index_sorted].sum()
-#    ppv = n_y_true_top / n_top
-#    return ppv
-
-
 def ppv(y_true, y_score):
     """Calculate positive predictive value (PPV)"""
     n_total = len(y_score)

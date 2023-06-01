@@ -1,2 +1,4 @@
-/data/*
-/out/*
+/data
+/out
+/checkpoint
+/results

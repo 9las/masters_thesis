@@ -23,14 +23,14 @@ import pandas as pd
 #Directory with the model architecure
 #sys.path.append("/home/projects/vaccine/people/matjen/master_project/keras_src")
 
-import keras_utils
+import s99_project_functions
 import matplotlib.pyplot as plt
 import seaborn as sns
 import random
 import argparse 
 
 #Importing the model
-from CNN_keras_architecture import CNN_CDR123_global_max
+from s98_models import CNN_CDR123_global_max
 
 #Makes the plots look better
 sns.set()
@@ -53,14 +53,13 @@ tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv('../data/train/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
+data = pd.read_csv('../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
 # Directories
 
-####################
-##CHANGE DIRECTORY##
-####################
-outdir = '../out'
-
+##########################
+##CHANGE FILENAME PREFIX##
+##########################
+experiment_index = '01'
 #Sample weights
 weight_dict = np.log2(data.shape[0]/(data.peptide.value_counts()))/np.log2(26) # We have 26 different peptides
 #Normalize, so that loss is comparable
@@ -74,7 +73,7 @@ pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index
 train_parts = {0, 1, 2, 3, 4} #Partitions
 patience = 100 #Patience for Early Stopping
 dropout_rate = 0.6 #Dropout Rate
-encoding = keras_utils.blosum50_20aa #Encoding for amino acid sequences
+encoding = s99_project_functions.blosum50_20aa #Encoding for amino acid sequences
 EPOCHS = 200 #Number of epochs in the training
 batch_size = 64 #Number of elements in each batch
 
@@ -102,13 +101,13 @@ pep_max = 12
      
 def make_tf_ds(df, encoding):
     """Prepares the embedding for the input features to the model"""
-    encoded_pep = keras_utils.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5 # Divide by 5 to make numbers closer to the interval -1 to 1 - makes model learn better
-    encoded_a1 = keras_utils.enc_list_bl_max_len(df.A1, encoding, a1_max)/5
-    encoded_a2 = keras_utils.enc_list_bl_max_len(df.A2, encoding, a2_max)/5
-    encoded_a3 = keras_utils.enc_list_bl_max_len(df.A3, encoding, a3_max)/5
-    encoded_b1 = keras_utils.enc_list_bl_max_len(df.B1, encoding, b1_max)/5
-    encoded_b2 = keras_utils.enc_list_bl_max_len(df.B2, encoding, b2_max)/5
-    encoded_b3 = keras_utils.enc_list_bl_max_len(df.B3, encoding, b3_max)/5
+    encoded_pep = s99_project_functions.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5 # Divide by 5 to make numbers closer to the interval -1 to 1 - makes model learn better
+    encoded_a1 = s99_project_functions.enc_list_bl_max_len(df.A1, encoding, a1_max)/5
+    encoded_a2 = s99_project_functions.enc_list_bl_max_len(df.A2, encoding, a2_max)/5
+    encoded_a3 = s99_project_functions.enc_list_bl_max_len(df.A3, encoding, a3_max)/5
+    encoded_b1 = s99_project_functions.enc_list_bl_max_len(df.B1, encoding, b1_max)/5
+    encoded_b2 = s99_project_functions.enc_list_bl_max_len(df.B2, encoding, b2_max)/5
+    encoded_b3 = s99_project_functions.enc_list_bl_max_len(df.B3, encoding, b3_max)/5
     targets = df.binder.values
     sample_weights = df.sample_weight
     tf_ds = [encoded_pep,
@@ -134,11 +133,11 @@ def auc_01(y_true, y_pred):
     return auc_01
 
 #Creates the directory to save the model in
-if not os.path.exists(outdir):
-    os.makedirs(outdir)
+if not os.path.exists('../results'):
+    os.makedirs('../results')
     
-outfile = open(outdir+"/"+"t.{}.v.{}.fold_validation.tsv".format(t,v), mode = "w")
-print("fold", "valid_loss", "best_auc_0.1", "best_epoch", sep = "\t", file = outfile)
+outfile = open("../results/s01_e{}_validation_t{}v{}.tsv".format(experiment_index,t,v), mode = "w")
+print("t", "v", "valid_loss", "best_auc_0.1", "best_epoch", sep = "\t", file = outfile)
 
 
 # Prepare plotting
@@ -161,10 +160,13 @@ weights_valid = valid_tensor[8] #Sample weight for the loss function
 #Selection of the model to train
 model = CNN_CDR123_global_max(dropout_rate = dropout_rate, seed = seed)
 
+#Creates the directory to save the model in
+if not os.path.exists('../checkpoint'):
+    os.makedirs('../checkpoint')
 
 #Saves the model at the best epoch (based on validation loss or other metric)
 ModelCheckpoint = keras.callbacks.ModelCheckpoint(
-        filepath = outdir+'/checkpoint/'+'t.'+str(t)+'.v.'+str(v)+".h5",
+        filepath = '../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v),
         monitor = "val_auc_01",
         mode = "max",
         save_best_only = True)
@@ -233,13 +235,12 @@ ax.legend()
 ax.set_title('Model t.'+str(t)+'.v.'+str(v))
 
 #Record metrics at checkpoint
-fold = outdir+'/checkpoint/'+str(t)+'.v.'+str(v)+".h5"
 valid_best = valid_loss[np.argmax(valid_auc)+1]
 best_epoch = np.argmax(valid_auc)+1
 best_auc = np.max(valid_auc)
 
 #Records loss and metrics at saved epoch
-print(fold, valid_best, best_auc, best_epoch, sep = "\t", file = outfile)
+print(t, v, valid_best, best_auc, best_epoch, sep = "\t", file = outfile)
 
 #Clears the session for the next model
 tf.keras.backend.clear_session()
@@ -250,4 +251,4 @@ outfile.close()
 #Save training/validation loss plot
 plt.tight_layout()
 plt.show()
-fig.savefig(outdir+'/t.{}.v.{}.learning_curves.png'.format(t,v), dpi=200)
+fig.savefig('../results/s01_e{}_learning_curves_t{}v{}.png'.format(experiment_index,t,v), dpi=200)

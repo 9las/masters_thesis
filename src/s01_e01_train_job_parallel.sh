@@ -2,8 +2,8 @@
 #module load tools
 
 #Keep this
-model='src/s01_train.py'
-run_script='src/s01_e01_train_job.sh'
+model='../src/s01_train.py'
+run_script='s01_e01_train_job.sh'
 
 #Submit each of the 20 models to the queue for training
 qsub $run_script -F "${model} 0 1"

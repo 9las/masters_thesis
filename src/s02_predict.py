@@ -24,30 +24,40 @@ import pandas as pd
 
 import s99_project_functions
 import random
+import argparse
+import yaml
+
+#Input arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config")
+args = parser.parse_args() 
+config_filename = args.config
+
+# Load config
+config = s99_project_functions.load_config(config_filename)
 
 # Set random seed
-seed=15
+seed=config['default']['seed']
 np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv('../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
+data = pd.read_csv(os.path.join('../data/raw', config['default']['data']))
 
 # Directories
 ####################
 ##CHANGE PREFIX##
 ####################
-experiment_index = '01'
+experiment_index = config['default']['experiment_index']
 
 #Define the list of peptides in the training data
 pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index)
 
 ### Model training parameters ###
 train_parts = {0, 1, 2, 3, 4} #Partitions
-dropout_rate = 0.6 #Dropout Rate
-encoding = s99_project_functions.blosum50_20aa #Encoding for amino acid sequences
+encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
 
 #Padding to certain length
 a1_max = 7
@@ -71,7 +81,7 @@ pep_max = 12
 #        return x.cpu().detach().numpy()
 #    return x.data.numpy()
 
-def my_numpy_function(y_true, y_pred):    
+def my_numpy_function(y_true, y_pred):
     try:
         auc = roc_auc_score(y_true, y_pred, max_fpr = 0.1)
     except ValueError:
@@ -89,7 +99,7 @@ def auc_01(y_true, y_pred):
 dependencies = {
     'auc_01': auc_01
 }
-     
+
 def make_tf_ds(df, encoding):
     """Prepares the embedding for the input features to the model"""
     encoded_pep = s99_project_functions.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5
@@ -106,7 +116,7 @@ def make_tf_ds(df, encoding):
              targets]
 
     return tf_ds
- 
+
 #Prepare output dataframe (test predictions)
 pred_df = pd.DataFrame()
 
@@ -118,10 +128,10 @@ for t in train_parts:
     x_test = test_tensor[0:7]
     targets_test = test_tensor[7]
     avg_prediction = 0 #Reset prediction
-    
+
     for v in train_parts:
         if v!=t:
-            
+
             #Loading the model
             model = keras.models.load_model('../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v), custom_objects=dependencies)
 
@@ -143,4 +153,4 @@ for t in train_parts:
     pred_df = pd.concat([pred_df, x_test_df])
 
 # Save predictions
-pred_df.to_csv(outdir + '../data/s02_e{}_predictions.csv'.format(experiment_index,t,v), index=False)
+pred_df.to_csv(outdir + '../data/s02_e{}_predictions.csv'.format(experiment_index), index=False)

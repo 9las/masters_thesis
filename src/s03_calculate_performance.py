@@ -5,8 +5,22 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
+import s99_project_functions
+import argparse
+import yaml
 
-data = pd.read_csv(filepath_or_buffer = '../out/cv_pred_df.csv')
+#Input arguments
+parser = argparse.ArgumentParser() 
+parser.add_argument("-c", "--config")
+args = parser.parse_args()
+config_filename = args.config
+
+# Load config
+config = s99_project_functions.load_config(config_filename)
+
+experiment_index = config['default']['experiment_index']
+
+data = pd.read_csv(filepath_or_buffer = '../data/s02_e{}_predictions.csv'.format(experiment_index))
 
 def ppv(y_true, y_score):
     """Calculate positive predictive value (PPV)"""
@@ -35,5 +49,5 @@ data = data.apply(func = lambda x:  pd.Series(data = [x.binder.sum(),
 data = data.sort_values(by = ['count_positive'],
                         ascending = False)
 
-data.to_csv(path_or_buf = '../out/model_performance.tsv',
+data.to_csv(path_or_buf = '../data/s03_e{}_performance.tsv'.format(experiment_index),
             sep = '\t')  

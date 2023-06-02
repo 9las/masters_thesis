@@ -24,58 +24,67 @@ import pandas as pd
 #sys.path.append("/home/projects/vaccine/people/matjen/master_project/keras_src")
 
 import s99_project_functions
+import s98_models
 import matplotlib.pyplot as plt
 import seaborn as sns
 import random
-import argparse 
-
-#Importing the model
-from s98_models import CNN_CDR123_global_max
-
-#Makes the plots look better
-sns.set()
+import argparse
 
 #Input arguments for running the model
 parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config")
 #Test partition, which is excluded from training
 parser.add_argument("-t", "--test_partition")
 #Validation partition for early stopping
 parser.add_argument("-v", "--validation_partition")
 args = parser.parse_args()
+config_filename = args.config
 t = int(args.test_partition)
 v = int(args.validation_partition)
 
+# Load config
+config = s99_project_functions.load_config(config_filename)
+
+#Importing the model
+model = getattr(s98_models, config['default']['model'])
+
+#Makes the plots look better
+sns.set()
+
 # Set random seed
-seed=15
+seed = config['default']['seed']
 np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv('../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv')
+data = pd.read_csv(os.path.join('../data/raw', config['default']['data']))
 # Directories
 
 ##########################
 ##CHANGE FILENAME PREFIX##
 ##########################
-experiment_index = '01'
+experiment_index = config['default']['experiment_index']
 #Sample weights
-weight_dict = np.log2(data.shape[0]/(data.peptide.value_counts()))/np.log2(26) # We have 26 different peptides
+
+if config['default']['sample_weight']:
+    weight_dict = np.log2(data.shape[0]/(data.peptide.value_counts()))/np.log2(26) # We have 26 different peptides
 #Normalize, so that loss is comparable
-weight_dict = weight_dict*(data.shape[0]/np.sum(weight_dict*data.peptide.value_counts()))
-data["sample_weight"] = data["peptide"].map(weight_dict)
+    weight_dict = weight_dict*(data.shape[0]/np.sum(weight_dict*data.peptide.value_counts()))
+    data["sample_weight"] = data["peptide"].map(weight_dict)
+else:
+    data["sample_weight"] = 1
 
 #Define the list of peptides in the training data
 pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index)
 
 ### Model training parameters ###
-train_parts = {0, 1, 2, 3, 4} #Partitions
-patience = 100 #Patience for Early Stopping
-dropout_rate = 0.6 #Dropout Rate
-encoding = s99_project_functions.blosum50_20aa #Encoding for amino acid sequences
-EPOCHS = 200 #Number of epochs in the training
-batch_size = 64 #Number of elements in each batch
+patience = config['default']['patience'] #Patience for Early Stopping
+dropout_rate = config['default']['dropout_rate'] #Dropout Rate
+encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
+EPOCHS = config['default']['epochs'] #Number of epochs in the training
+batch_size = config['default']['batch_size'] #Number of elements in each batch
 
 #Padding to certain length
 a1_max = 7
@@ -115,7 +124,6 @@ def make_tf_ds(df, encoding):
              encoded_b1, encoded_b2, encoded_b3,
              targets,
              sample_weights]
-
     return tf_ds
 
 def my_numpy_function(y_true, y_pred):    
@@ -158,7 +166,7 @@ targets_valid = valid_tensor[7] #Target (0 or 1)
 weights_valid = valid_tensor[8] #Sample weight for the loss function
 
 #Selection of the model to train
-model = CNN_CDR123_global_max(dropout_rate = dropout_rate, seed = seed)
+model = model(dropout_rate = dropout_rate, seed = seed)
 
 #Creates the directory to save the model in
 if not os.path.exists('../checkpoint'):

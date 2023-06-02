@@ -1,8 +1,22 @@
 #!/usr/bin/env Rscript
 library(tidyverse)
 library(svglite)
+library(argparser)
+library(config)
 
-data <- read_tsv(file = "../out/model_performance.tsv",
+# Input arguments
+parser <- arg_parser()
+parser <- add_argument(parser = parser,
+                  arg = "--config")
+args <- parse_args(parser)
+config_filename <- args$config
+
+# Load config
+config <- config::get(file = config_filename)
+
+experiment_index = config$experiment_index
+
+data <- read_tsv(file = str_glue("../data/s03_e{experiment_index}_performance.tsv"),
                  col_types = cols(peptide = col_factor(),
                                   count_positive = col_integer()))
 
@@ -96,9 +110,9 @@ plot_performance <- function(data) {
     theme(legend.position = "top",
           legend.justification = "left")
   
-  ggsave(filename = "plot_performance.svg",
+  ggsave(filename = str_glue("s04_e{experiment_index}_performance_plot.svg"),
          plot = p,
-         path = "../out")
+         path = "../results")
 }
 
 # data |>

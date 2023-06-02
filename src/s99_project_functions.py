@@ -13,10 +13,18 @@ import matplotlib.pyplot as plt
 from operator import add
 import math
 import numpy as np
+import yaml
 
 def mkdir(outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
+
+# Function to load yaml configuration file
+def load_config(config_name):
+    with open(config_name) as file:
+        config = yaml.safe_load(file)
+
+    return config
 
 def enc_list_bl_max_len(aa_seqs, blosum, max_seq_len, padding = "right"):
     '''

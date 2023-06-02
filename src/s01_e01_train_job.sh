@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
 #PBS -l nodes=1:ppn=4:thinnode,mem=12GB,walltime=1:00:00
-#PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/
+#PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 #PBS -o /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 
@@ -17,4 +17,4 @@ source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
 ##Run Model
-./src/s01_train.py -c $1 -t $2 -v $3
+./s01_train.py -c $1 -t $2 -v $3

@@ -1,2 +1,8 @@
-/data/*
-/out/*
+/data
+/out
+/checkpoint
+/results
+/logs
+/src/__pycache__
+/src/.Rhistory
+/src/.RData

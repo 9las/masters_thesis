@@ -1,6 +1,6 @@
 #!/bin/bash
 
-config='s97_e01_config.yaml'
+config='s97_e03_config.yaml'
 run_script='s01_train_job.sh'
 
 #Submit each of the 20 models to the queue for training

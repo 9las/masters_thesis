@@ -153,4 +153,4 @@ for t in train_parts:
     pred_df = pd.concat([pred_df, x_test_df])
 
 # Save predictions
-pred_df.to_csv(outdir + '../data/s02_e{}_predictions.csv'.format(experiment_index), index=False)
+pred_df.to_csv('../data/s02_e{}_predictions.csv'.format(experiment_index), index=False)

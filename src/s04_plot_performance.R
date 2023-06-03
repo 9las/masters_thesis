@@ -5,9 +5,10 @@ library(argparser)
 library(config)
 
 # Input arguments
-parser <- arg_parser()
+parser <- arg_parser(description = "Plot the model performance")
 parser <- add_argument(parser = parser,
-                  arg = "--config")
+                       arg = "--config",
+                       help = "Path to YAML configuration file")
 args <- parse_args(parser)
 config_filename <- args$config
 

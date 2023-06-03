@@ -2,5 +2,7 @@
 /out
 /checkpoint
 /results
-/src/__pycache__
 /logs
+/src/__pycache__
+/src/.Rhistory
+/src/.RData

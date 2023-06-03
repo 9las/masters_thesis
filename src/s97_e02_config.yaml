@@ -1,11 +1,12 @@
 # This config uses the original paramters from Mathias Jensen
+# except that there is no dropout
 default:
     seed: 15
     experiment_index: '01'
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_final.csv
     patience: 100
-    dropout_rate: 0.6
+    dropout_rate: 0
     encoding: blosum50_20aa
     epochs: 200
     batch_size: 64

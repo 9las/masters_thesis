@@ -49,5 +49,20 @@ data = data.apply(func = lambda x:  pd.Series(data = [x.binder.sum(),
 data = data.sort_values(by = ['count_positive'],
                         ascending = False)
 
+data_summary = pd.DataFrame(data = {'statistic': ['mean',
+                                                  'weighted_mean'],
+                                    'auc': [data.auc.mean(),
+                                            np.average(a = data.auc,
+                                                       weights = data.count_positive)],
+                                    'auc01': [data.auc01.mean(),
+                                              np.average(a = data.auc01,
+                                                         weights = data.count_positive)],
+                                    'ppv': [data.ppv.mean(),
+                                            np.average(a = data.ppv,
+                                                       weights = data.count_positive)]})
+
 data.to_csv(path_or_buf = '../data/s03_e{}_performance.tsv'.format(experiment_index),
-            sep = '\t')  
+            sep = '\t')
+data_summary.to_csv(path_or_buf = '../data/s03_e{}_performance_summary.tsv'.format(experiment_index),
+                    sep = '\t',
+                    index = False)

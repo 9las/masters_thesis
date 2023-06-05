@@ -1,11 +1,11 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
 #PBS -l nodes=1:ppn=4:thinnode,mem=12GB,walltime=1:00:00
-#PBS -t 0-19%10
+#PBS -t 0-19%20
 #PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 #PBS -o /home/projects/vaccine/people/nilsch/masters_thesis/logs/
-#PBS –m ae –M s123015@dtu.dk
+#PBS –m ae –M s123015@student.dtu.dk
 
 ##$1-Config file path
 
@@ -23,4 +23,4 @@ v_array=(1 2 3 4 0 2 3 4 0 1 3 4 0 1 2 4 0 1 2 3)
 ./s01_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
 
 ##Get status
-qstat –f -1 $PBS_JOBID
+qstat -f -1 $PBS_JOBID

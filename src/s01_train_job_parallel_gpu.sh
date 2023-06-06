@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
-#PBS -l nodes=1:ppn=4:thinnode,mem=12GB,walltime=1:00:00
+#PBS -l nodes=1:gpus=1:ppn=4,mem=12GB,walltime=1:00:00
 #PBS -t 0-19%20
 #PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/

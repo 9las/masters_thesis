@@ -7,7 +7,7 @@
 #PBS -o /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 #PBS -m ae -M s123015@student.dtu.dk
 
-##$1-Config file path
+# $1-Config file path
 
 # Go to working directory
 cd $PBS_O_INITDIR
@@ -19,8 +19,8 @@ conda activate env
 t_array=(0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4)
 v_array=(1 2 3 4 0 2 3 4 0 1 3 4 0 1 2 4 0 1 2 3)
 
-##Run Model
+# Run model
 ./s01_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
 
-##Get status
+# Get status
 qstat -f -1 $PBS_JOBID

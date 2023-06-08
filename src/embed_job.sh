@@ -9,7 +9,8 @@
 # Go to working directory
 cd $PBS_O_INITDIR
 
-module load tools
+git checkout issue-9
+
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env_bio_embeddings
 

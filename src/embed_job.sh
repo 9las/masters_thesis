@@ -9,6 +9,9 @@
 # Go to working directory
 cd $PBS_O_INITDIR
 
+source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
+conda activate env_bio_embeddings
+
 # Run model
 ./embed_test.py
 

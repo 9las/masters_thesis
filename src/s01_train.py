@@ -45,7 +45,10 @@ v = int(args.validation_partition)
 # Load config
 config = s99_project_functions.load_config(config_filename)
 
-#Importing the model
+# Set experiment index
+experiment_index = config['default']['experiment_index']
+
+#Import model
 model = getattr(s98_models, config['default']['model'])
 
 #Makes the plots look better
@@ -59,25 +62,24 @@ tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv(os.path.join('../data/raw', config['default']['data']))
-# Directories
+data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw', config['default']['data']),
+                   usecols = ['peptide',
+                              'binder',
+                              'partition',
+                              'original_index'])
 
-##########################
-##CHANGE FILENAME PREFIX##
-##########################
-experiment_index = config['default']['experiment_index']
+peptides_unique = data['peptide'].unique()
+peptides_unique_count = peptides_unique.size
+
 #Sample weights
 
 if config['default']['sample_weight']:
-    weight_dict = np.log2(data.shape[0]/(data.peptide.value_counts()))/np.log2(26) # We have 26 different peptides
+    weight_dict = np.log2(data.shape[0]/(data.peptide.value_counts()))/np.log2(peptides_unique_count)
 #Normalize, so that loss is comparable
     weight_dict = weight_dict*(data.shape[0]/np.sum(weight_dict*data.peptide.value_counts()))
     data["sample_weight"] = data["peptide"].map(weight_dict)
 else:
     data["sample_weight"] = 1
-
-#Define the list of peptides in the training data
-pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index)
 
 ### Model training parameters ###
 patience = config['default']['patience'] #Patience for Early Stopping
@@ -95,19 +97,6 @@ b2_max = 7
 b3_max = 23
 pep_max = 12
 
-# Define support functions for cuda tensors
-#def get_variable(x):
-#    """ Converts tensors to cuda, if available. """
-#    if torch.cuda.is_available():
-#        return x.cuda()
-#    return x
-
-#def get_numpy(x):
-#    """ Get numpy array for both cuda and not. """
-#    if torch.cuda.is_available():
-#        return x.cpu().detach().numpy()
-#    return x.data.numpy()
-     
 def make_tf_ds(df, encoding):
     """Prepares the embedding for the input features to the model"""
     encoded_pep = s99_project_functions.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5 # Divide by 5 to make numbers closer to the interval -1 to 1 - makes model learn better

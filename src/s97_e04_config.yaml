@@ -1,8 +1,8 @@
 # This config uses the original paramters from Mathias Jensen
-# except that there is no dropout
+# except that there is no sample weighting or dropout
 default:
     seed: 15
-    experiment_index: '02'
+    experiment_index: '03'
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100
@@ -10,5 +10,5 @@ default:
     encoding: blosum50_20aa
     epochs: 200
     batch_size: 64
-    sample_weight: True
+    sample_weight: False
     embedding_model_name: null

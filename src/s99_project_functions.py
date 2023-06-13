@@ -274,16 +274,19 @@ def get_encoding_scheme(name = 'blosum50_20aa'):
 
     return scheme
 
+def get_encoding_scheme_info(scheme):
+    amino_acid_encoded = next(iter(scheme.values()))
+    count_features = len(amino_acid_encoded)
+    data_type = amino_acid_encoded.dtype
+
+    return (count_features, data_type)
+
 def encode_peptide(sequence,
                    encoding_scheme_name = 'blosum50_20aa'):
     sequence = sequence.upper()
     encoding_scheme = get_encoding_scheme(name = encoding_scheme_name)
     length_sequence = len(sequence)
-
-    # Get info from an encoded amino acid in encoding scheme
-    amino_acid_encoded = next(iter(encoding_scheme.values()))
-    count_features = len(amino_acid_encoded)
-    data_type = amino_acid_encoded.dtype
+    count_features, data_type = get_encoding_scheme_info(encoding_scheme)
 
     # Initialize encoded sequence array
     sequence_encoded = np.empty(shape = (length_sequence,

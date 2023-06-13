@@ -11,31 +11,30 @@ from tensorflow.keras import layers
 from tensorflow.keras import initializers
 import numpy as np
 
-def CNN_CDR123_global_max(dropout_rate, seed, embed_dim = 20):
-    #Maximum length of each feature
-    a1_max = 7
-    a2_max = 8
-    a3_max = 22
-    b1_max = 6
-    b2_max = 7
-    b3_max = 23
-    pep_max = 12
-    
-    #Second dimension of the embedding
-    embed_dim = embed_dim  
+def CNN_CDR123_global_max(dropout_rate,
+                          seed,
+                          count_features_peptide,
+                          count_features_tcr,
+                          a1_max,
+                          a2_max,
+                          a3_max,
+                          b1_max,
+                          b2_max,
+                          b3_max,
+                          pep_max):
     
     #Activation
     conv_activation = "relu"
     dense_activation = "sigmoid"
     
     #Inputs
-    pep = keras.Input(shape = (pep_max, embed_dim), name ="pep")
-    a1 = keras.Input(shape = (a1_max, embed_dim), name ="a1")
-    a2 = keras.Input(shape = (a2_max, embed_dim), name ="a2")
-    a3 = keras.Input(shape = (a3_max, embed_dim), name ="a3")
-    b1 = keras.Input(shape = (b1_max, embed_dim), name ="b1")
-    b2 = keras.Input(shape = (b2_max, embed_dim), name ="b2")
-    b3 = keras.Input(shape = (b3_max, embed_dim), name ="b3")
+    pep = keras.Input(shape = (pep_max, count_features_peptide), name ="pep")
+    a1 = keras.Input(shape = (a1_max, count_features_tcr), name ="a1")
+    a2 = keras.Input(shape = (a2_max, count_features_tcr), name ="a2")
+    a3 = keras.Input(shape = (a3_max, count_features_tcr), name ="a3")
+    b1 = keras.Input(shape = (b1_max, count_features_tcr), name ="b1")
+    b2 = keras.Input(shape = (b2_max, count_features_tcr), name ="b2")
+    b3 = keras.Input(shape = (b3_max, count_features_tcr), name ="b3")
     
     #Convolutional Layers
     pep_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(pep)

@@ -2,7 +2,7 @@
 # but with an esm1b embedding
 default:
     seed: 15
-    experiment_index: '01'
+    experiment_index: '05'
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100

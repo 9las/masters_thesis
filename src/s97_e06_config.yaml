@@ -1,7 +1,8 @@
 # This config uses the original paramters from Mathias Jensen
+# but with an esm1b embedding
 default:
     seed: 15
-    experiment_index: '01'
+    experiment_index: '06'
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100
@@ -10,5 +11,5 @@ default:
     epochs: 200
     batch_size: 64
     sample_weight: True
-    embedding_model_name: null
-    dense_layer_units: 64
+    embedding_model_name: esm1b
+    dense_layer_units: 300

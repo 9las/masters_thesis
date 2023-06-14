@@ -12,3 +12,4 @@ default:
     batch_size: 64
     sample_weight: False
     embedding_model_name: null
+    dense_layer_units: 64

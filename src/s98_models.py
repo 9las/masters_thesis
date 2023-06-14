@@ -21,7 +21,8 @@ def CNN_CDR123_global_max(dropout_rate,
                           b1_max,
                           b2_max,
                           b3_max,
-                          pep_max):
+                          pep_max,
+                          dense_layer_units):
     
     #Activation
     conv_activation = "relu"
@@ -135,10 +136,10 @@ def CNN_CDR123_global_max(dropout_rate,
     cat_dropout = layers.Dropout(dropout_rate, seed = seed)(cat)
     
     #Dense layer
-    dense = layers.Dense(64, activation = dense_activation)(cat_dropout)
+    dense = layers.Dense(units = dense_layer_units, activation = dense_activation)(cat_dropout)
     
     #Output layer
-    out = layers.Dense(1,activation = "sigmoid")(dense)
+    out = layers.Dense(units = 1, activation = "sigmoid")(dense)
     
     #Prepare model object
     model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],

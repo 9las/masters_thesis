@@ -38,6 +38,7 @@ encoding_scheme_name = config['default']['encoding'] #Encoding scheme for amino 
 EPOCHS = config['default']['epochs'] #Number of epochs in the training
 batch_size = config['default']['batch_size'] #Number of elements in each batch
 embedding_model_name = config['default']['embedding_model_name']
+dense_layer_units = config['default']['dense_layer_units']
 
 if embedding_model_name is None:
     use_embeddings = False
@@ -276,7 +277,8 @@ model = model(dropout_rate = dropout_rate,
               b1_max = b1_max,
               b2_max = b2_max,
               b3_max = b3_max,
-              pep_max = pep_max)
+              pep_max = pep_max,
+              dense_layer_units = dense_layer_units)
 
 #Creates the directory to save the model in
 if not os.path.exists('../checkpoint'):

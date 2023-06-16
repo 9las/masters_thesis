@@ -1,27 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-@author: Mathias
-"""
 
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import roc_auc_score
-
 import os
 import sys
-#import torch
 import numpy as np
 import pandas as pd 
-
-#Imports the util module and network architectures for NetTCR
-#If changes are wanted, change this directory to your own directory
-#sys.path.append("/home/projects/vaccine/people/matjen/master_project/nettcr_src")
-
-#Directory with the "keras_utils.py" script
-#sys.path.append("/home/projects/vaccine/people/matjen/master_project/keras_src")
-#Directory with the model architecure
-
 import s99_project_functions
 import random
 import argparse
@@ -36,50 +21,61 @@ config_filename = args.config
 # Load config
 config = s99_project_functions.load_config(config_filename)
 
-# Set random seed
+# Set parameters from config
+experiment_index = config['default']['experiment_index']
+encoding_scheme_name = config['default']['encoding']
 seed=config['default']['seed']
+data_file_name = config['default']['data']
+
+# Set random seed
 np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv(os.path.join('../data/raw', config['default']['data']))
-
-# Directories
-####################
-##CHANGE PREFIX##
-####################
-experiment_index = config['default']['experiment_index']
-
-#Define the list of peptides in the training data
-pep_list = list(data[data.binder==1].peptide.value_counts(ascending=False).index)
+data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
+                                                     data_file_name),
+                   usecols = ['A1',
+                              'A2',
+                              'A3',
+                              'B1',
+                              'B2',
+                              'B3',
+                              'peptide',
+                              'binder',
+                              'partition',
+                              'original_index'])
 
 ### Model training parameters ###
 train_parts = {0, 1, 2, 3, 4} #Partitions
-encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
+#encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
 
-#Padding to certain length
-a1_max = 7
-a2_max = 8
-a3_max = 22
-b1_max = 6
-b2_max = 7
-b3_max = 23
-pep_max = 12
+# Make dataframe with unique peptides and their row number
+df_peptides_unique = pd.DataFrame(index = pd.unique(data['peptide']))
+peptides_unique_count = df_peptides_unique.shape[0]
+df_peptides_unique = (df_peptides_unique
+                      .assign(row_number = range(peptides_unique_count)))
 
-# Define support functions for cuda tensors
-#def get_variable(x):
-#    """ Converts tensors to cuda, if available. """
-#    if torch.cuda.is_available():
-#        return x.cuda()
-#    return x
+# Encode unique peptides
+peptides_unique_encoded = (df_peptides_unique
+                           .index
+                           .map(lambda x: (s99_project_functions
+                                           .encode_peptide(sequence = x,
+                                                           encoding_scheme_name = encoding_scheme_name)))
+                           .tolist())
 
-#def get_numpy(x):
-#    """ Get numpy array for both cuda and not. """
-#    if torch.cuda.is_available():
-#        return x.cpu().detach().numpy()
-#    return x.data.numpy()
+# Pad unique peptides
+peptides_unique_encoded = s99_project_functions.pad_sequences(sequence_array = peptides_unique_encoded,
+                                                              padding_value = -5)/5
+
+# Get max sequence lengths for padding
+a1_max = data['A1'].map(len).max()
+a2_max = data['A2'].map(len).max()
+a3_max = data['A3'].map(len).max()
+b1_max = data['B1'].map(len).max()
+b2_max = data['B2'].map(len).max()
+b3_max = data['B3'].map(len).max()
 
 def my_numpy_function(y_true, y_pred):
     try:

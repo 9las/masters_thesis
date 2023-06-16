@@ -378,50 +378,77 @@ def pad_sequences(sequence_array,
     return sequence_padded_array
 
 
-def encode_peptides(sequences,
-                    length_sequence_max,
-                    encoding_scheme = 'blosum50_20aa',
-                    peptide_encoding_dict = None,
-                    padding_value = 0,
-                    padding_side = 'right',
-                    truncating_side = 'right'):
+def get_model_input(df,
+                    df_peptides_unique,
+                    peptides_unique_encoded,
+                    use_embeddings = True,
+                    encoding_scheme_name = None,
+                    a1_max = None,
+                    a2_max = None,
+                    a3_max = None,
+                    b1_max = None,
+                    b2_max = None,
+                    b3_max = None,
+                    get_weights = False):
+    """Prepares the embedding for the input features to the model"""
+    # Initialize
+    model_input = dict()
 
-    count_features, data_type = get_encoding_scheme_info(scheme = encoding_scheme)
-    count_sequences = len(sequences)
+    if get_weights:
+        model_input['weight'] = (df['peptide']
+                                 .map(lambda x: (df_peptides_unique
+                                                 .loc[x,
+                                                      'weight']))
+                                 .to_numpy())
 
-    # Initialize array of encoded sequences
-    sequences_encoded = np.full(shape = (count_sequences,
-                                         length_sequence_max,
-                                         count_features),
-                                fill_value = padding_value,
-                                dtype = data_type)
+    encoded_pep_ids = (df['peptide']
+                       .map(lambda x: (df_peptides_unique
+                                       .loc[x,
+                                            'row_number']))
+                       .to_list())
 
-    if padding_side == 'right':
-        sequences_encoded[0,
-                          :length_sequence] = sequence_encoded
+    model_input['peptide'] = peptides_unique_encoded[encoded_pep_ids]
 
-    elif padding_side == 'left':
-        sequences_encoded[0,
-                         length_sequence_max - length_sequence:] = sequence_encoded
-    else:
-        try:
-            raise ValueError('Unknown encoding scheme')
-        except ValueError as error:
-            print(error)
-            sys.exit(1)
+    model_input['target'] = df['binder'].to_numpy()
 
-    # Encode rest of sequences
-    for sequence_id in range(1, count_sequences):
-        sequence = sequences[sequence_id]
-        sequence_encoded = encode_peptide(sequence = sequence,
-                                          encoding_scheme = encoding_scheme)
-        length_sequence = sequence_encoded.shape[0]
+    # Map negative TCR IDs to positive TCR IDs
+    positive_binder_original_ids = df.query('binder == 1').index
+    dict_original_ids_to_positive_tcr_array_ids = {positive_binder_original_ids[i]: i for i in range(len(positive_binder_original_ids))}
+    list_original_positive_tcr_array_ids = [dict_original_ids_to_positive_tcr_array_ids[original_index] for original_index in df['original_index']]
 
-        
-        sequences_encoded[sequence_id,
-                          :length_sequence] = sequence_encoded
+    # Get embedded/encoded CDRs
+    cdr_name_tuple = ('a1', 'a2', 'a3', 'b1', 'b2', 'b3')
+    cdr_length_max_tuple = (a1_max,
+                                 a2_max,
+                                 a3_max,
+                                 b1_max,
+                                 b2_max,
+                                 b3_max)
+    if use_embeddings:
+        # Load embedded positive CDRs
+        file_embeddings = np.load(file = '../data/embedding.npz')
 
-    return sequences_encoded
+    for i in range(len(cdr_name_tuple)):
+        cdr_name = cdr_name_tuple[i]
+        cdr_length_max = cdr_length_max_tuple[i]
+        if use_embeddings:
+            # Retrive embedded positive CDRs
+            model_input[cdr_name] = file_embeddings[cdr_name]
+        else:
+             # Encode positive CDRs
+             model_input[cdr_name] = (df
+                                      .query('binder == 1')[cdr_name.upper()]
+                                      .map(lambda x: encode_peptide(sequence = x,
+                                                                    encoding_scheme_name = encoding_scheme_name)))
+             # Pad positive CDRs
+             model_input[cdr_name] = pad_sequences(sequence_array = model_input[cdr_name].tolist(),
+                                                   length_sequence_max = cdr_length_max,
+                                                   padding_value = -5)/5
+
+        # Get negative TCRs from the positive
+        model_input[cdr_name] = model_input[cdr_name][list_original_positive_tcr_array_ids]
+
+    return model_input
 
 def adjust_batch_size(obs, batch_size, threshold = 0.5):
     if obs/batch_size < threshold:

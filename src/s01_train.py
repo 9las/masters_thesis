@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import tensorflow as tf
 from tensorflow import keras
@@ -39,6 +38,10 @@ EPOCHS = config['default']['epochs'] #Number of epochs in the training
 batch_size = config['default']['batch_size'] #Number of elements in each batch
 embedding_model_name = config['default']['embedding_model_name']
 dense_layer_units = config['default']['dense_layer_units']
+sample_weight = config['default']['sample_weight']
+seed = config['default']['seed']
+data_file_name = config['default']['data']
+model_name = config['default']['model']
 
 if embedding_model_name is None:
     use_embeddings = False
@@ -49,14 +52,14 @@ else:
 sns.set()
 
 # Set random seed
-seed = config['default']['seed']
 np.random.seed(seed)  # Numpy module.
 random.seed(seed)  # Python random module.
 tf.random.set_seed(seed) # Tensorflow random seed
 
 ### Input/Output ###
 # Read in data
-data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw', config['default']['data']),
+data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
+                                                     data_file_name),
                    usecols = ['A1',
                               'A2',
                               'A3',
@@ -69,27 +72,36 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw', config['defa
                               'original_index'])
 
 # Import model
-model = getattr(s98_models, config['default']['model'])
+model = getattr(s98_models, model_name)
 
-# Make dataframe with unique peptides and their encoding
-peptide_dict = pd.DataFrame({'count': data['peptide'].value_counts()})
-peptide_dict = (peptide_dict
-    .assign(peptide_encoded = lambda x: x.index.map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                   encoding_scheme_name = encoding_scheme_name)))
-    .assign(peptide_encoded = lambda x: [element for element in s99_project_functions.pad_sequences(sequence_array = x['peptide_encoded'].tolist(),
-                                                                                                    padding_value = -5)]))
+# Make dataframe with unique peptides, their count and row number
+df_peptides_unique = pd.DataFrame({'count': data['peptide'].value_counts()})
+peptides_unique_count = df_peptides_unique.shape[0]
+df_peptides_unique = (df_peptides_unique
+                .assign(row_number = range(peptides_unique_count)))
 
-peptides_unique_count = peptide_dict.shape[0]
-entries_count = data.shape[0]
+# Encode unique peptides
+peptides_unique_encoded = (df_peptides_unique
+                   .index
+                   .map(lambda x: (s99_project_functions
+                                   .encode_peptide(sequence = x,
+                                                   encoding_scheme_name = encoding_scheme_name)))
+                   .tolist())
+
+# Pad unique peptides
+peptides_unique_encoded = s99_project_functions.pad_sequences(sequence_array = peptides_unique_encoded,
+                                                      padding_value = -5)/5
 
 # Add sample weights to unique peptides dataframe
-if config['default']['sample_weight']:
-    peptide_dict = (peptide_dict
+entries_count = data.shape[0]
+
+if sample_weight:
+    df_peptides_unique = (df_peptides_unique
         .assign(weight = lambda x: np.log2(entries_count/(x['count']))/np.log2(peptides_unique_count))
         #Normalize, so that loss is comparable
         .assign(weight = lambda x: x['weight']*(entries_count/np.sum(x['weight']*x['count']))))
 else:
-    peptide_dict = (peptide_dict
+    df_peptides_unique = (df_peptides_unique
         .assign(weight = 1))
 
 # Get max sequence lengths for padding
@@ -99,91 +111,7 @@ a3_max = data['A3'].map(len).max()
 b1_max = data['B1'].map(len).max()
 b2_max = data['B2'].map(len).max()
 b3_max = data['B3'].map(len).max()
-pep_max = peptide_dict.index.map(len).max()
-
-def get_model_input(df,
-                    peptide_dict,
-                    use_embeddings = True,
-                    encoding_scheme_name = None,
-                    a1_max = None,
-                    a2_max = None,
-                    a3_max = None,
-                    b1_max = None,
-                    b2_max = None,
-                    b3_max = None):
-    """Prepares the embedding for the input features to the model"""
-    df = df.merge(right = peptide_dict, how = 'left', left_on = 'peptide', right_index = True)
-    encoded_pep = np.array([element for element in df['peptide_encoded']])/5
-    sample_weights = df['weight'].to_numpy()
-    targets = df['binder'].to_numpy()
-
-    if use_embeddings:
-        file_embeddings = np.load(file = '../data/embedding.npz')
-        encoded_a1 = file_embeddings['a1_padded']
-        encoded_a2 = file_embeddings['a2_padded']
-        encoded_a3 = file_embeddings['a3_padded']
-        encoded_b1 = file_embeddings['b1_padded']
-        encoded_b2 = file_embeddings['b2_padded']
-        encoded_b3 = file_embeddings['b3_padded']
-    else:
-        # Encode positive TCR
-        encoded_a1 = df.query('binder == 1')['A1'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        encoded_a2 = df.query('binder == 1')['A2'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        encoded_a3 = df.query('binder == 1')['A3'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        encoded_b1 = df.query('binder == 1')['B1'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        encoded_b2 = df.query('binder == 1')['B2'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        encoded_b3 = df.query('binder == 1')['B3'].map(lambda x: s99_project_functions.encode_peptide(sequence = x,
-                                                                                                      encoding_scheme_name = encoding_scheme_name))
-        # Pad positive TCR
-        encoded_a1 = s99_project_functions.pad_sequences(sequence_array = encoded_a1.tolist(),
-                                                         length_sequence_max = a1_max,
-                                                         padding_value = -5)/5
-        encoded_a2 = s99_project_functions.pad_sequences(sequence_array = encoded_a2.tolist(),
-                                                         length_sequence_max = a2_max,
-                                                         padding_value = -5)/5
-        encoded_a3 = s99_project_functions.pad_sequences(sequence_array = encoded_a3.tolist(),
-                                                         length_sequence_max = a3_max,
-                                                         padding_value = -5)/5
-        encoded_b1 = s99_project_functions.pad_sequences(sequence_array = encoded_b1.tolist(),
-                                                         length_sequence_max = b1_max,
-                                                         padding_value = -5)/5
-        encoded_b2 = s99_project_functions.pad_sequences(sequence_array = encoded_b2.tolist(),
-                                                         length_sequence_max = b2_max,
-                                                         padding_value = -5)/5
-        encoded_b3 = s99_project_functions.pad_sequences(sequence_array = encoded_b3.tolist(),
-                                                         length_sequence_max = b3_max,
-                                                         padding_value = -5)/5
-
-
-    # Map negative TCR IDs to positive TCR IDs
-    positive_binder_original_ids = df.query('binder == 1').index
-    dict_original_ids_to_positive_tcr_array_ids = {positive_binder_original_ids[i]: i for i in range(len(positive_binder_original_ids))}
-    list_original_positive_tcr_array_ids = [dict_original_ids_to_positive_tcr_array_ids[original_index] for original_index in df['original_index']]
-
-    # Get negative TCRs from the positive
-    encoded_a1 = encoded_a1[list_original_positive_tcr_array_ids]
-    encoded_a2 = encoded_a2[list_original_positive_tcr_array_ids]
-    encoded_a3 = encoded_a3[list_original_positive_tcr_array_ids]
-    encoded_b1 = encoded_b1[list_original_positive_tcr_array_ids]
-    encoded_b2 = encoded_b2[list_original_positive_tcr_array_ids]
-    encoded_b3 = encoded_b3[list_original_positive_tcr_array_ids]
-
-    return {'peptide': encoded_pep,
-            'a1': encoded_a1,
-            'a2': encoded_a2,
-            'a3': encoded_a3,
-            'b1': encoded_b1,
-            'b2': encoded_b2,
-            'b3': encoded_b3,
-            'target': targets,
-            'weight': sample_weights}
-
-
+pep_max = df_peptides_unique.index.map(len).max()
 
 #def make_tf_ds(df, encoding):
 #    """Prepares the embedding for the input features to the model"""
@@ -230,16 +158,19 @@ fig, ax = plt.subplots(figsize=(15, 10))
 
 #Training data
 x_train_df = data[(data.partition!=t)&(data.partition!=v)]
-train_tensor = get_model_input(df = x_train_df,
-                               peptide_dict = peptide_dict,
-                               use_embeddings = use_embeddings,
-                               encoding_scheme_name = encoding_scheme_name,
-                               a1_max = a1_max,
-                               a2_max = a2_max,
-                               a3_max = a3_max,
-                               b1_max = b1_max,
-                               b2_max = b2_max,
-                               b3_max = b3_max)
+train_tensor = (s99_project_functions
+                .get_model_input(df = x_train_df,
+                                 df_peptides_unique = df_peptides_unique,
+                                 peptides_unique_encoded = peptides_unique_encoded,
+                                 use_embeddings = use_embeddings,
+                                 encoding_scheme_name = encoding_scheme_name,
+                                 a1_max = a1_max,
+                                 a2_max = a2_max,
+                                 a3_max = a3_max,
+                                 b1_max = b1_max,
+                                 b2_max = b2_max,
+                                 b3_max = b3_max,
+                                 get_weights = True))
 # train_tensor = make_tf_ds(x_train_df, encoding = encoding)
 # x_train = train_tensor[0:7] #Inputs
 # targets_train = train_tensor[7] #Target (0 or 1)
@@ -247,16 +178,19 @@ train_tensor = get_model_input(df = x_train_df,
 
 #Validation data - Used for early stopping
 x_valid_df = data[(data.partition==v)]
-valid_tensor = get_model_input(df = x_valid_df,
-                               peptide_dict = peptide_dict,
-                               use_embeddings = use_embeddings,
-                               encoding_scheme_name = encoding_scheme_name,
-                               a1_max = a1_max,
-                               a2_max = a2_max,
-                               a3_max = a3_max,
-                               b1_max = b1_max,
-                               b2_max = b2_max,
-                               b3_max = b3_max)
+valid_tensor = (s99_project_functions
+                .get_model_input(df = x_valid_df,
+                                 df_peptides_unique = df_peptides_unique,
+                                 peptides_unique_encoded = peptides_unique_encoded,
+                                 use_embeddings = use_embeddings,
+                                 encoding_scheme_name = encoding_scheme_name,
+                                 a1_max = a1_max,
+                                 a2_max = a2_max,
+                                 a3_max = a3_max,
+                                 b1_max = b1_max,
+                                 b2_max = b2_max,
+                                 b3_max = b3_max,
+                                 get_weights = True))
 # valid_tensor = make_tf_ds(x_valid_df, encoding = encoding)
 # x_valid = valid_tensor[0:7] #Inputs
 # targets_valid = valid_tensor[7] #Target (0 or 1)

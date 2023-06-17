@@ -12,9 +12,11 @@
 # Go to working directory 
 cd $PBS_O_INITDIR
 
-module load tools
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
 ##Run Model
 ./s01_train.py -c $1 -t $2 -v $3
+
+# Get status
+qstat -f -1 $PBS_JOBID

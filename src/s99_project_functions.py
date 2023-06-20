@@ -377,6 +377,36 @@ def pad_sequences(sequence_array,
 
     return sequence_padded_array
 
+def encode_unique_sequences(df,
+                            encoding_scheme_name = 'blosum50_20aa',
+                            sample_weight = False):
+    unique_dict = dict()
+    peptide_to_id_dict = dict()
+    peptide_index = 0
+    if sample_weight:
+        peptide_count_array = list()
+
+    for peptide in df['peptide']:
+        if peptide not in peptide_to_id_dict:
+            peptide_to_id_dict[peptide] = peptide_index
+            peptide_index += 1
+            if sample_weight:
+                peptide_count_array.append(1)
+        else:
+            if sample_weight:
+                peptide_count_array[peptide_to_id_dict[peptide]] += 1
+
+    unique_dict['peptide_to_id_dict'] = peptide_to_id_dict
+    if sample_weight:
+        peptide_unique_count = len(peptide_to_id_dict)
+        entries_count = df.shape[0]
+
+        peptide_count_array = np.array(peptide_count_array)
+        peptide_weight_array = np.log2(entries_count/(peptide_count_array))/np.log2(peptide_unique_count)
+        peptide_weight_array = peptide_weight_array*(entries_count/np.sum(peptide_weight_array*peptide_count_array))
+        unique_dict['peptide_weight_array'] = peptide_weight_array
+
+    return unique_dict
 
 def get_model_input(df,
                     df_peptides_unique,

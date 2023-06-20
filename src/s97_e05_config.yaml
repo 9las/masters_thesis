@@ -6,10 +6,10 @@ default:
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100
-    dropout_rate: 0.6
+    dropout_rate: 0
     encoding: blosum50_20aa
     epochs: 200
     batch_size: 64
-    sample_weight: True
+    sample_weight: False
     embedding_model_name: esm1b
     dense_layer_units: 64

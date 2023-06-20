@@ -51,6 +51,7 @@ data = data.sort_values(by = ['count_positive'],
 
 data_summary = pd.DataFrame(data = {'statistic': ['mean',
                                                   'weighted_mean'],
+                                    'count_positive': data.count_positive.sum(),
                                     'auc': [data.auc.mean(),
                                             np.average(a = data.auc,
                                                        weights = data.count_positive)],

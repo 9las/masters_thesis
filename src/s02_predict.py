@@ -6,7 +6,7 @@ from sklearn.metrics import roc_auc_score
 import os
 import sys
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import s99_project_functions
 import random
 import argparse
@@ -15,7 +15,7 @@ import yaml
 #Input arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config")
-args = parser.parse_args() 
+args = parser.parse_args()
 config_filename = args.config
 
 # Load config
@@ -24,8 +24,15 @@ config = s99_project_functions.load_config(config_filename)
 # Set parameters from config
 experiment_index = config['default']['experiment_index']
 encoding_scheme_name = config['default']['encoding']
+embedding_model_name = config['default']['embedding_model_name'] 
 seed=config['default']['seed']
 data_file_name = config['default']['data']
+
+
+if embedding_model_name is None:
+    use_embeddings = False
+else:
+    use_embeddings = True
 
 # Set random seed
 np.random.seed(seed)  # Numpy module.
@@ -48,7 +55,7 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'original_index'])
 
 ### Model training parameters ###
-train_parts = {0, 1, 2, 3, 4} #Partitions
+partitions_count = 5
 #encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
 
 # Make dataframe with unique peptides and their row number
@@ -91,54 +98,43 @@ def auc_01(y_true, y_pred):
     auc_01 = tf.numpy_function(my_numpy_function, [y_true, y_pred], tf.float64)
     return auc_01
 
-#Necessary to load the model with the custom metric
-dependencies = {
-    'auc_01': auc_01
-}
-
-def make_tf_ds(df, encoding):
-    """Prepares the embedding for the input features to the model"""
-    encoded_pep = s99_project_functions.enc_list_bl_max_len(df.peptide, encoding, pep_max)/5
-    encoded_a1 = s99_project_functions.enc_list_bl_max_len(df.A1, encoding, a1_max)/5
-    encoded_a2 = s99_project_functions.enc_list_bl_max_len(df.A2, encoding, a2_max)/5
-    encoded_a3 = s99_project_functions.enc_list_bl_max_len(df.A3, encoding, a3_max)/5
-    encoded_b1 = s99_project_functions.enc_list_bl_max_len(df.B1, encoding, b1_max)/5
-    encoded_b2 = s99_project_functions.enc_list_bl_max_len(df.B2, encoding, b2_max)/5
-    encoded_b3 = s99_project_functions.enc_list_bl_max_len(df.B3, encoding, b3_max)/5
-    targets = df.binder.values
-    tf_ds = [encoded_pep,
-             encoded_a1, encoded_a2, encoded_a3, 
-             encoded_b1, encoded_b2, encoded_b3,
-             targets]
-
-    return tf_ds
-
 #Prepare output dataframe (test predictions)
 pred_df = pd.DataFrame()
 
 
 #Loop over each model
-for t in train_parts:
-    x_test_df = data[(data.partition==t)].reset_index()
-    test_tensor = make_tf_ds(x_test_df, encoding = encoding)
-    x_test = test_tensor[0:7]
-    targets_test = test_tensor[7]
-    avg_prediction = 0 #Reset prediction
+for t in range(partitions_count):
+    x_test_df = data.query('partition == @t')
+    test_tensor = (s99_project_functions
+                   .get_model_input(df = x_test_df,
+                                    df_peptides_unique = df_peptides_unique,
+                                    peptides_unique_encoded = peptides_unique_encoded,
+                                    use_embeddings = use_embeddings,
+                                    encoding_scheme_name = encoding_scheme_name,
+                                    a1_max = a1_max,
+                                    a2_max = a2_max,
+                                    a3_max = a3_max,
+                                    b1_max = b1_max,
+                                    b2_max = b2_max,
+                                    b3_max = b3_max,
+                                    get_weights = False))
+    avg_prediction = 0 # Intilialize
 
-    for v in train_parts:
+    for v in range(partitions_count):
         if v!=t:
 
             #Loading the model
-            model = keras.models.load_model('../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v), custom_objects=dependencies)
+            model = keras.models.load_model(filepath = '../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v),
+                                            custom_objects = {'auc_01': auc_01})
 
             #Prediction by one model
-            avg_prediction += model.predict(x = {"pep": x_test[0],
-                                                 "a1": x_test[1],
-                                                 "a2": x_test[2],
-                                                 "a3": x_test[3],
-                                                 "b1": x_test[4],
-                                                 "b2": x_test[5],
-                                                 "b3": x_test[6]})
+            avg_prediction += model.predict(x = {"pep": test_tensor['peptide'],
+                                                 "a1": test_tensor['a1'],
+                                                 "a2": test_tensor['a2'],
+                                                 "a3": test_tensor['a3'],
+                                                 "b1": test_tensor['b1'],
+                                                 "b2": test_tensor['b2'],
+                                                 "b3": test_tensor['b3']})
 
             #Clears the session for the next model
             tf.keras.backend.clear_session()

@@ -71,8 +71,6 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'partition',
                               'original_index'])
 
-#data = data.query("peptide == 'GILGFVFTL'")
-
 # Import model
 model = getattr(s98_models, model_name)
 

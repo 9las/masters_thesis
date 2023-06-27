@@ -54,7 +54,6 @@ embedder = s99_project_functions_bio_embeddings.get_bio_embedder(name = embeddin
 # Do the embedding for positive binders - all unique TCRs
 data = (data
         .query('binder == 1')
-        .head(10)
         .assign(tra_aa_encoded = lambda x: x.TRA_aa.map(embedder.embed),
                 trb_aa_encoded = lambda x: x.TRB_aa.map(embedder.embed)))
 

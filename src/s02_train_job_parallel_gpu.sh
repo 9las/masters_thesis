@@ -12,7 +12,6 @@
 # Go to working directory
 cd $PBS_O_INITDIR
 
-module load tools
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
@@ -20,7 +19,7 @@ t_array=(0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4)
 v_array=(1 2 3 4 0 2 3 4 0 1 3 4 0 1 2 4 0 1 2 3)
 
 # Run model
-./s01_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
+./s02_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
 
 # Get status
 qstat -f -1 $PBS_JOBID

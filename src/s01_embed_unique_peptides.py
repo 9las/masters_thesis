@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
 import pandas as pd
-import s99_project_functions
 import s99_project_functions_bio_embeddings
 import argparse
 
@@ -12,7 +11,7 @@ args = parser.parse_args()
 config_filename = args.config
 
 # Load config
-config = s99_project_functions.load_config(config_filename)
+config = s99_project_functions_bio_embeddings.load_config(config_filename)
 
 # Set parameters from config
 embedding_name_peptide = config['default']['embedding_name_peptide']

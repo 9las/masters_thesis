@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 import bio_embeddings.embed
 import sys
+import yaml
+
+# Function to load yaml configuration file
+def load_config(config_name):
+    with open(config_name) as file:
+        config = yaml.safe_load(file)
+
+    return config
 
 def get_bio_embedder(name = 'esm1b'):
     if name == 'bepler':

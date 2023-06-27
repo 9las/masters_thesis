@@ -1,6 +1,6 @@
 # This config uses the original paramters from Mathias Jensen
 default:
-    experiment_index: '01'
+    experiment_index: '04'
     seed: 15
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv

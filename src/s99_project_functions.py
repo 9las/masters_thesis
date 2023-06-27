@@ -1,9 +1,5 @@
 ####!/usr/bin/env python
 
-"""
-Functions for data IO for neural network training.
-"""
-
 from __future__ import print_function # Might not be necessary, used to import print function in older python version
 import argparse
 import sys
@@ -16,10 +12,6 @@ import numpy as np
 import yaml
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
-
-def mkdir(outdir):
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
 
 # Function to load yaml configuration file
 def load_config(config_name):
@@ -41,61 +33,6 @@ def auc01(y_true, y_pred):
     "Allows Tensorflow to use the function during training"
     auc01 = tf.numpy_function(auc01_numpy, [y_true, y_pred], tf.float64)
     return auc01
-
-def enc_list_bl_max_len(aa_seqs, blosum, max_seq_len, padding = "right"):
-    '''
-    blosum encoding of a list of amino acid sequences with padding 
-    to a max length
-
-    parameters:
-        - aa_seqs : list with AA sequences
-        - blosum : dictionnary: key= AA, value= blosum encoding
-        - max_seq_len: common length for padding
-    returns:
-        - enc_aa_seq : list of np.ndarrays containing padded, encoded amino acid sequences
-    '''
-
-    # encode sequences:
-    sequences=[]
-    blosum = get_encoding_scheme(name = blosum)
-    for seq in aa_seqs:
-        e_seq= np.zeros((len(seq),len(blosum["A"])))
-        count=0
-        for aa in seq:
-            if aa in blosum:
-                e_seq[count]=blosum[aa]
-                count+=1
-            else:
-                sys.stderr.write("Unknown amino acid in peptides: "+ aa +", encoding aborted!\n")
-                sys.exit(2)
-
-        sequences.append(e_seq)
-
-    # pad sequences:
-    #max_seq_len = max([len(x) for x in aa_seqs])
-    n_seqs = len(aa_seqs)
-    n_features = sequences[0].shape[1]
-
-    enc_aa_seq = -5*np.ones((n_seqs, max_seq_len, n_features))
-    if padding == "right":
-        for i in range(0,n_seqs):
-            enc_aa_seq[i, :sequences[i].shape[0], :n_features] = sequences[i]
-            
-    elif padding == "left":
-        for i in range(0,n_seqs):
-            enc_aa_seq[i, max_seq_len-sequences[i].shape[0]:max_seq_len, :n_features] = sequences[i]
-    
-    else:
-        print("Error: No valid padding has been chosen.\nValid options: 'right', 'left'")
-        
-
-    return enc_aa_seq
-
-
-
-##############################
-# Different encoding schemes #
-##############################
 
 def get_encoding_scheme(name = 'blosum50_20aa'):
     if name == 'blosum50_20aa':
@@ -618,184 +555,6 @@ def pad_unique_tcrs(df,
                                                            truncating_side = truncating_side)))
 
     return df_padded
-
-def get_peptide_map(df,
-                    embedding_name = 'blosum50_20aa',
-                    sample_weight = False,
-                    padding_value = 0,
-                    padding_side = 'right',
-                    truncating_side = 'right'):
-
-    # Calculate sample weights
-    if sample_weight:
-        peptide_map = (df
-                       .groupby('peptide')
-                       .agg(count = ('peptide',
-                                     'count')))
-
-        peptide_unique_count = peptide_map.shape[0]
-        peptide_count = df.shape[0]
-
-        peptide_map = (peptide_map
-                       .assign(weight = lambda x: (np.log2(peptide_count
-                                                           / x['count'])
-                                                   / np.log2(peptide_unique_count)))
-                       .assign(weight = lambda x: (x['weight']
-                                                   * (peptide_count
-                                                      / np.sum(x['weight']
-                                                               * x['count']))))
-                       .drop(labels = 'count',
-                             axis = 1))
-    else:
-        peptide_map = (df
-                       .groupby('peptide')
-                       .agg(weight = ('peptide',
-                                      lambda x: 1)))
-    # Do the encoding
-    if embedding_name in {'blosum50_20aa',
-                          'blosum50',
-                          'one_hot',
-                          'one_hot_20aa',
-                          'amino_to_idx',
-                          'phys_chem',
-                          'blosum62',
-                          'blosum62_20aa'}:
-
-        peptide_map = (peptide_map
-                       .assign(peptide_encoded = lambda x: (x.index
-                                                            .map(lambda y: encode_sequence(sequence = y,
-                                                                                          embedding_name = embedding_name)))))
-    else:
-        print('hej')
-    # Do the padding
-    sequence_length_max = peptide_map.index.map(len).max()
-    peptide_map = (peptide_map
-                   .assign(peptide_encoded = lambda x: (x['peptide_encoded']
-                                                        .map(lambda y: pad_sequence(sequence = y,
-                                                                                    sequence_length_max = sequence_length_max,
-                                                                                    padding_value = padding_value,
-                                                                                    padding_side = padding_side,
-                                                                                    truncating_side = truncating_side)))))
-
-    return peptide_map
-
-def encode_unique_peptides_(df,
-                           embedding_name = 'blosum50_20aa',
-                           sample_weight = False):
-    out_dict = dict()
-    out_dict['peptide_to_id_dict'] = dict()
-    peptide_index = 0
-    out_dict['peptide_encoded_array'] = list()
-    if sample_weight:
-        peptide_count_array = list()
-
-    for peptide in df['peptide']:
-        if peptide not in out_dict['peptide_to_id_dict']:
-            out_dict['peptide_to_id_dict'][peptide] = peptide_index
-            peptide_index += 1
-            peptide_encoded = encode_sequence(sequence = peptide,
-                                             embedding_name = embedding_name )
-            out_dict['peptide_encoded_array'].append(peptide_encoded)
-            if sample_weight:
-                peptide_count_array.append(1)
-        else:
-            if sample_weight:
-                peptide_id = out_dict['peptide_to_id_dict'][peptide]
-                peptide_count_array[peptide_id] += 1
-
-    out_dict['peptide_encoded_array'] = pad_sequences(sequence_array = out_dict['peptide_encoded_array'],
-                                                      padding_value = -5)/5
-
-    peptide_unique_count = len(out_dict['peptide_to_id_dict']) 
-
-    if sample_weight:
-        entries_count = df.shape[0]
-
-        peptide_count_array = np.array(peptide_count_array)
-        out_dict['peptide_weight_array'] = (np.log2(entries_count
-                                                    / peptide_count_array)
-                                            / np.log2(peptide_unique_count))
-        out_dict['peptide_weight_array'] = (out_dict['peptide_weight_array']
-                                            * (entries_count
-                                               / np.sum(out_dict['peptide_weight_array']
-                                                        * peptide_count_array)))
-    else:
-        out_dict['peptide_weight_array'] = np.ones(shape = peptide_unique_count,
-                                                   dtype = np.ubyte)
-
-    return out_dict
-
-def get_model_input(df,
-                    df_peptides_unique,
-                    peptides_unique_encoded,
-                    use_embeddings = True,
-                    embedding_name = None,
-                    a1_max = None,
-                    a2_max = None,
-                    a3_max = None,
-                    b1_max = None,
-                    b2_max = None,
-                    b3_max = None,
-                    get_weights = False):
-    """Prepares the embedding for the input features to the model"""
-    # Initialize
-    model_input = dict()
-
-    if get_weights:
-        model_input['weight'] = (df['peptide']
-                                 .map(lambda x: (df_peptides_unique
-                                                 .loc[x,
-                                                      'weight']))
-                                 .to_numpy())
-
-    encoded_pep_ids = (df['peptide']
-                       .map(lambda x: (df_peptides_unique
-                                       .loc[x,
-                                            'row_number']))
-                       .to_list())
-
-    model_input['peptide'] = peptides_unique_encoded[encoded_pep_ids]
-
-    model_input['target'] = df['binder'].to_numpy()
-
-    # Map negative TCR IDs to positive TCR IDs
-    positive_binder_original_ids = df.query('binder == 1').index
-    dict_original_ids_to_positive_tcr_array_ids = {positive_binder_original_ids[i]: i for i in range(len(positive_binder_original_ids))}
-    list_original_positive_tcr_array_ids = [dict_original_ids_to_positive_tcr_array_ids[original_index] for original_index in df['original_index']]
-
-    # Get embedded/encoded CDRs
-    cdr_name_tuple = ('a1', 'a2', 'a3', 'b1', 'b2', 'b3')
-    cdr_length_max_tuple = (a1_max,
-                                 a2_max,
-                                 a3_max,
-                                 b1_max,
-                                 b2_max,
-                                 b3_max)
-    if use_embeddings:
-        # Load embedded positive CDRs
-        file_embeddings = np.load(file = '../data/embedding.npz')
-
-    for i in range(len(cdr_name_tuple)):
-        cdr_name = cdr_name_tuple[i]
-        cdr_length_max = cdr_length_max_tuple[i]
-        if use_embeddings:
-            # Retrive embedded positive CDRs
-            model_input[cdr_name] = file_embeddings[cdr_name]
-        else:
-             # Encode positive CDRs
-             model_input[cdr_name] = (df
-                                      .query('binder == 1')[cdr_name.upper()]
-                                      .map(lambda x: encode_sequence(sequence = x,
-                                                                    embedding_name = embedding_name)))
-             # Pad positive CDRs
-             model_input[cdr_name] = pad_sequences(sequence_array = model_input[cdr_name].tolist(),
-                                                   length_sequence_max = cdr_length_max,
-                                                   padding_value = -5)/5
-
-        # Get negative TCRs from the positive
-        model_input[cdr_name] = model_input[cdr_name][list_original_positive_tcr_array_ids]
-
-    return model_input
 
 def adjust_batch_size(obs, batch_size, threshold = 0.5):
     if obs/batch_size < threshold:

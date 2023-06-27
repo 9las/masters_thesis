@@ -1,7 +1,5 @@
-# This config uses the original paramters from Mathias Jensen
-# but with an esm1b embedding
 default:
-    experiment_index: '05'
+    experiment_index: '01'
     seed: 15
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
@@ -9,7 +7,16 @@ default:
     dropout_rate: 0.6
     epochs: 200
     batch_size: 64
-    sample_weight: True
+    weight_peptides: True
     embedding_name_tcr: esm1b
     embedding_name_peptide: blosum50_20aa
-    dense_layer_units: 64
+    padding_value_peptide: -5
+    padding_side_peptide: right
+    truncating_side_peptide: right
+    padding_value_tcr: 0
+    padding_side_tcr: right
+    truncating_side_tcr: right
+    peptide_selection: null
+    peptide_normalization_divisor: 5
+    tcr_normalization_divisor: 20
+    learning_rate: 0.001

@@ -1,15 +1,23 @@
 # This config uses the original paramters from Mathias Jensen
-# except that there is no sample weighting
 default:
+    experiment_index: '01'
     seed: 15
-    experiment_index: '03'
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100
     dropout_rate: 0.6
-    encoding: blosum50_20aa
     epochs: 200
     batch_size: 64
-    sample_weight: False
-    embedding_model_name: null
-    dense_layer_units: 64
+    weight_peptides: False
+    embedding_name_tcr: blosum50_20aa
+    embedding_name_peptide: blosum50_20aa
+    padding_value_peptide: -5
+    padding_side_peptide: right
+    truncating_side_peptide: right
+    padding_value_tcr: -5
+    padding_side_tcr: right
+    truncating_side_tcr: right
+    peptide_selection: null
+    peptide_normalization_divisor: 5
+    tcr_normalization_divisor: 5
+    learning_rate: 0.001

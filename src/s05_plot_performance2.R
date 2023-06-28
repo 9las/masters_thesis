@@ -7,10 +7,10 @@ library(patchwork)
 # Read data
 
 file_paths <- dir_ls(path = "../data/",
-                     regexp = "s03_e\\d{2}_performance.tsv")
+                     regexp = "s04_e\\d{2}_performance.tsv")
 
 file_paths_summary <- dir_ls(path = "../data/",
-                             regexp = "s03_e\\d{2}_performance_summary.tsv")
+                             regexp = "s04_e\\d{2}_performance_summary.tsv")
 
 data <- read_tsv(file = file_paths,
                  col_types = cols(peptide = col_factor(),
@@ -89,7 +89,7 @@ p <- p2+
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
   ylim(0, 1)
 
-ggsave(filename = "s04_auc_plot.svg",
+ggsave(filename = "s05_auc_plot.svg",
        plot = p,
        path = "../results",
        width = 30,
@@ -128,7 +128,7 @@ p <- p2+
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
   ylim(0, 1)
 
-ggsave(filename = "s04_auc01_plot.svg",
+ggsave(filename = "s05_auc01_plot.svg",
        plot = p,
        path = "../results",
        width = 30,
@@ -167,7 +167,7 @@ p <- p2+
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
   ylim(0, 1)
 
-ggsave(filename = "s04_ppv_plot.svg",
+ggsave(filename = "s05_ppv_plot.svg",
        plot = p,
        path = "../results",
        width = 30,

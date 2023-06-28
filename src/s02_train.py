@@ -10,7 +10,6 @@ import s99_project_functions
 import s98_models
 import matplotlib.pyplot as plt
 import seaborn as sns
-import random
 import argparse
 
 #Input arguments for running the model
@@ -52,9 +51,7 @@ tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 learning_rate = config['default']['learning_rate']
 
 # Set random seed
-np.random.seed(seed)  # Numpy module.
-random.seed(seed)  # Python random module.
-tf.random.set_seed(seed) # Tensorflow random seed
+keras.utils.set_random_seed(seed)
 
 ### Input/Output ###
 # Read in data
@@ -144,43 +141,33 @@ if peptide_selection is not None:
     data = (data
             .query('peptide == @peptide_selection'))
 
+# Remove test partition and join unique encoded sequences onto the data set
+data = (data
+        .query('partition != @t')
+        .merge(right = df_peptides,
+               how = 'left',
+               on = 'peptide')
+        .merge(right = df_tcrs,
+               how = 'left',
+               on = 'original_index')
+        .filter(items = ['peptide_encoded',
+                         'a1_encoded',
+                         'a2_encoded',
+                         'a3_encoded',
+                         'b1_encoded',
+                         'b2_encoded',
+                         'b3_encoded',
+                         'weight',
+                         'binder',
+                         'partition']))
+
 # Get training data
 df_train = (data
-            .query('partition != @t & partition != @v')
-            .merge(right = df_peptides,
-                   how = 'left',
-                   on = 'peptide')
-            .merge(right = df_tcrs,
-                   how = 'left',
-                   on = 'original_index')
-            .filter(items = ['peptide_encoded',
-                             'a1_encoded',
-                             'a2_encoded',
-                             'a3_encoded',
-                             'b1_encoded',
-                             'b2_encoded',
-                             'b3_encoded',
-                             'weight',
-                             'binder']))
+            .query('partition != @v'))
 
 # Get validation data
 df_validation = (data
-                 .query('partition == @v')
-                 .merge(right = df_peptides,
-                        how = 'left',
-                        on = 'peptide')
-                 .merge(right = df_tcrs,
-                        how = 'left',
-                        on = 'original_index')
-                 .filter(items = ['peptide_encoded',
-                                  'a1_encoded',
-                                  'a2_encoded',
-                                  'a3_encoded',
-                                  'b1_encoded',
-                                  'b2_encoded',
-                                  'b3_encoded',
-                                  'weight',
-                                  'binder']))
+                 .query('partition == @v'))
 
 # Get model input
 peptide_train = np.stack(arrays = df_train['peptide_encoded'])
@@ -329,6 +316,3 @@ ax.set_title('Model t.'+str(t)+'.v.'+str(v))
 plt.tight_layout()
 plt.show()
 fig.savefig('../results/s02_e{}_learning_curves_t{}v{}.png'.format(experiment_index,t,v), dpi=200)
-
-#Clears the session for the next model
-# tf.keras.backend.clear_session()

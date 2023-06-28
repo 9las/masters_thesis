@@ -20,7 +20,8 @@ config = s99_project_functions.load_config(config_filename)
 
 experiment_index = config['default']['experiment_index']
 
-data = pd.read_csv(filepath_or_buffer = '../data/s02_e{}_predictions.csv'.format(experiment_index))
+data = pd.read_csv(filepath_or_buffer = '../data/s03_e{}_predictions.tsv'.format(experiment_index),
+                   sep = '\t')
 
 def ppv(y_true, y_score):
     """Calculate positive predictive value (PPV)"""
@@ -32,38 +33,40 @@ def ppv(y_true, y_score):
     return ppv
 
 
-data = data.groupby(['peptide'])
-data = data.apply(func = lambda x:  pd.Series(data = [x.binder.sum(),
-                                                      roc_auc_score(y_true = x.binder,
-                                                                    y_score = x.prediction),
-                                                      roc_auc_score(y_true = x.binder,
-                                                                    y_score = x.prediction,
-                                                                    max_fpr = 0.1),
-                                                      ppv(y_true = x.binder.to_numpy(),
-                                                          y_score = x.prediction.to_numpy())],
-                                              index = ['count_positive',
-                                                       'auc',
-                                                       'auc01',
-                                                       'ppv'],
-                                              dtype = object))
-data = data.sort_values(by = ['count_positive'],
-                        ascending = False)
+data = (data
+        .groupby(['peptide'])
+        .apply(func = lambda x:  pd.Series(data = [x['binder'].sum(),
+                                                   roc_auc_score(y_true = x['binder'],
+                                                                 y_score = x['prediction']),
+                                                   roc_auc_score(y_true = x['binder'],
+                                                                 y_score = x['prediction'],
+                                                                 max_fpr = 0.1),
+                                                   ppv(y_true = x['binder'].to_numpy(),
+                                                       y_score = x['prediction'].to_numpy())],
+                                           index = ['count_positive',
+                                                    'auc',
+                                                    'auc01',
+                                                    'ppv'],
+                                           dtype = object))
+        .sort_values(by = ['count_positive'],
+                     ascending = False))
 
 data_summary = pd.DataFrame(data = {'statistic': ['mean',
                                                   'weighted_mean'],
-                                    'count_positive': data.count_positive.sum(),
-                                    'auc': [data.auc.mean(),
-                                            np.average(a = data.auc,
-                                                       weights = data.count_positive)],
-                                    'auc01': [data.auc01.mean(),
-                                              np.average(a = data.auc01,
-                                                         weights = data.count_positive)],
-                                    'ppv': [data.ppv.mean(),
-                                            np.average(a = data.ppv,
-                                                       weights = data.count_positive)]})
+                                    'count_positive': data['count_positive'].sum(),
+                                    'auc': [data['auc'].mean(),
+                                            np.average(a = data['auc'],
+                                                       weights = data['count_positive'])],
+                                    'auc01': [data['auc01'].mean(),
+                                              np.average(a = data['auc01'],
+                                                         weights = data['count_positive'])],
+                                    'ppv': [data['ppv'].mean(),
+                                            np.average(a = data['ppv'],
+                                                       weights = data['count_positive'])]})
 
-data.to_csv(path_or_buf = '../data/s03_e{}_performance.tsv'.format(experiment_index),
+data.to_csv(path_or_buf = '../data/s04_e{}_performance.tsv'.format(experiment_index),
             sep = '\t')
-data_summary.to_csv(path_or_buf = '../data/s03_e{}_performance_summary.tsv'.format(experiment_index),
+
+data_summary.to_csv(path_or_buf = '../data/s04_e{}_performance_summary.tsv'.format(experiment_index),
                     sep = '\t',
                     index = False)

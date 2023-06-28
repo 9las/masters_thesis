@@ -8,13 +8,12 @@ import sys
 import numpy as np
 import pandas as pd
 import s99_project_functions
-import random
 import argparse
 import yaml
 
 #Input arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--config")
+parser.add_argument('-c', '--config')
 args = parser.parse_args()
 config_filename = args.config
 
@@ -23,21 +22,21 @@ config = s99_project_functions.load_config(config_filename)
 
 # Set parameters from config
 experiment_index = config['default']['experiment_index']
-encoding_scheme_name = config['default']['encoding']
-embedding_model_name = config['default']['embedding_model_name'] 
+embedding_name_tcr = config['default']['embedding_name_tcr']
+embedding_name_peptide = config['default']['embedding_name_peptide']
+padding_value_peptide = config['default']['padding_value_peptide']
+padding_side_peptide = config['default']['padding_side_peptide']
+truncating_side_peptide = config['default']['truncating_side_peptide']
+padding_value_tcr = config['default']['padding_value_tcr']
+padding_side_tcr = config['default']['padding_side_tcr']
+truncating_side_tcr = config['default']['truncating_side_tcr']
+peptide_normalization_divisor = config['default']['peptide_normalization_divisor']
+tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 seed=config['default']['seed']
 data_file_name = config['default']['data']
 
-
-if embedding_model_name is None:
-    use_embeddings = False
-else:
-    use_embeddings = True
-
 # Set random seed
-np.random.seed(seed)  # Numpy module.
-random.seed(seed)  # Python random module.
-tf.random.set_seed(seed) # Tensorflow random seed
+keras.utils.set_random_seed(seed)
 
 ### Input/Output ###
 # Read in data
@@ -54,95 +53,139 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'partition',
                               'original_index'])
 
-### Model training parameters ###
+# Get dataframe with unique encoded peptides
+if embedding_name_peptide in {'blosum50_20aa',
+                              'blosum50',
+                              'one_hot',
+                              'one_hot_20aa',
+                              'amino_to_idx',
+                              'phys_chem',
+                              'blosum62',
+                              'blosum62_20aa'}:
+
+    df_peptides = (s99_project_functions
+                   .encode_unique_peptides(df = data,
+                                           encoding_name = embedding_name_peptide))
+
+else:
+    df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_peptide_{}.pkl'
+                                                       .format(embedding_name_peptide)))
+
+# Get dataframe with unique encoded CDRs
+if embedding_name_tcr in {'blosum50_20aa',
+                          'blosum50',
+                          'one_hot',
+                          'one_hot_20aa',
+                          'amino_to_idx',
+                          'phys_chem',
+                          'blosum62',
+                          'blosum62_20aa'}:
+
+    df_tcrs = (s99_project_functions
+               .encode_unique_tcrs(df = data,
+                                   encoding_name = embedding_name_tcr))
+else:
+    df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_tcr_{}.pkl'
+                                                   .format(embedding_name_tcr)))
+
+# Pad unique peptides and CDRs
+df_peptides = (s99_project_functions
+               .pad_unique_peptides(df = df_peptides,
+                                    padding_value = padding_value_peptide,
+                                    padding_side = padding_side_peptide,
+                                    truncating_side = truncating_side_peptide))
+df_tcrs = (s99_project_functions
+           .pad_unique_tcrs(df = df_tcrs,
+                            padding_value = padding_value_tcr,
+                            padding_side = padding_side_tcr,
+                            truncating_side = truncating_side_tcr))
+
+df_peptides = (df_peptides
+               .drop(labels = 'count',
+                     axis = 1))
+
+# Join unique encoded sequences onto the data set
+data = (data
+        .merge(right = df_peptides,
+               how = 'left',
+               on = 'peptide')
+        .merge(right = df_tcrs,
+               how = 'left',
+               on = 'original_index'))
+
+# Remove unused variables from memory
+del df_peptides, df_tcrs
+
+# Do the prediction
 partitions_count = 5
-#encoding = getattr(s99_project_functions, config['default']['encoding']) #Encoding for amino acid sequences
-
-# Make dataframe with unique peptides and their row number
-df_peptides_unique = pd.DataFrame(index = pd.unique(data['peptide']))
-peptides_unique_count = df_peptides_unique.shape[0]
-df_peptides_unique = (df_peptides_unique
-                      .assign(row_number = range(peptides_unique_count)))
-
-# Encode unique peptides
-peptides_unique_encoded = (df_peptides_unique
-                           .index
-                           .map(lambda x: (s99_project_functions
-                                           .encode_peptide(sequence = x,
-                                                           encoding_scheme_name = encoding_scheme_name)))
-                           .tolist())
-
-# Pad unique peptides
-peptides_unique_encoded = s99_project_functions.pad_sequences(sequence_array = peptides_unique_encoded,
-                                                              padding_value = -5)/5
-
-# Get max sequence lengths for padding
-a1_max = data['A1'].map(len).max()
-a2_max = data['A2'].map(len).max()
-a3_max = data['A3'].map(len).max()
-b1_max = data['B1'].map(len).max()
-b2_max = data['B2'].map(len).max()
-b3_max = data['B3'].map(len).max()
-
-def my_numpy_function(y_true, y_pred):
-    try:
-        auc = roc_auc_score(y_true, y_pred, max_fpr = 0.1)
-    except ValueError:
-        #Exception for when a positive observation is not present in a batch
-        auc = np.array([float(0)])
-    return auc
-
-#Custom metric for AUC 0.1
-def auc_01(y_true, y_pred):
-    "Allows Tensorflow to use the function during training"
-    auc_01 = tf.numpy_function(my_numpy_function, [y_true, y_pred], tf.float64)
-    return auc_01
-
-#Prepare output dataframe (test predictions)
-pred_df = pd.DataFrame()
-
-
-#Loop over each model
 for t in range(partitions_count):
-    x_test_df = data.query('partition == @t')
-    test_tensor = (s99_project_functions
-                   .get_model_input(df = x_test_df,
-                                    df_peptides_unique = df_peptides_unique,
-                                    peptides_unique_encoded = peptides_unique_encoded,
-                                    use_embeddings = use_embeddings,
-                                    encoding_scheme_name = encoding_scheme_name,
-                                    a1_max = a1_max,
-                                    a2_max = a2_max,
-                                    a3_max = a3_max,
-                                    b1_max = b1_max,
-                                    b2_max = b2_max,
-                                    b3_max = b3_max,
-                                    get_weights = False))
-    avg_prediction = 0 # Intilialize
+
+    # Get test data
+    test_partition_mask = data['partition'] == t
+    df_test = data[test_partition_mask]
+
+    # Get model input
+    peptide_test = np.stack(arrays = df_test['peptide_encoded'])
+    a1_test = np.stack(arrays = df_test['a1_encoded'])
+    a2_test = np.stack(arrays = df_test['a2_encoded'])
+    a3_test = np.stack(arrays = df_test['a3_encoded'])
+    b1_test = np.stack(arrays = df_test['b1_encoded'])
+    b2_test = np.stack(arrays = df_test['b2_encoded'])
+    b3_test = np.stack(arrays = df_test['b3_encoded'])
+
+    # Normalise embeddings
+    peptide_test = peptide_test / peptide_normalization_divisor
+    a1_test = a1_test / tcr_normalization_divisor
+    a2_test = a2_test / tcr_normalization_divisor
+    a3_test = a3_test / tcr_normalization_divisor
+    b1_test = b1_test / tcr_normalization_divisor
+    b2_test = b2_test / tcr_normalization_divisor
+    b3_test = b3_test / tcr_normalization_divisor
+
+    # Remove unused variables from memory
+    del df_test
+
+    # Initialize
+    avg_prediction = 0
 
     for v in range(partitions_count):
         if v!=t:
 
-            #Loading the model
-            model = keras.models.load_model(filepath = '../checkpoint/s01_e{}_t{}v{}'.format(experiment_index,t,v),
-                                            custom_objects = {'auc_01': auc_01})
+            # Load the model
+            model = keras.models.load_model(filepath = '../checkpoint/s02_e{}_t{}v{}'.format(experiment_index, t, v),
+                                            custom_objects = {'auc01': s99_project_functions.auc01})
 
-            #Prediction by one model
-            avg_prediction += model.predict(x = {"pep": test_tensor['peptide'],
-                                                 "a1": test_tensor['a1'],
-                                                 "a2": test_tensor['a2'],
-                                                 "a3": test_tensor['a3'],
-                                                 "b1": test_tensor['b1'],
-                                                 "b2": test_tensor['b2'],
-                                                 "b3": test_tensor['b3']})
+            # Do prediction by one model
+            avg_prediction += model.predict(x = {'pep': peptide_test,
+                                                 'a1': a1_test,
+                                                 'a2': a2_test,
+                                                 'a3': a3_test,
+                                                 'b1': b1_test,
+                                                 'b2': b2_test,
+                                                 'b3': b3_test})
 
-            #Clears the session for the next model
+            # Clear the session for the next model
             tf.keras.backend.clear_session()
 
-    #Averaging the predictions between all models in the inner loop
-    avg_prediction = avg_prediction/4
-    x_test_df['prediction'] = avg_prediction
-    pred_df = pd.concat([pred_df, x_test_df])
+    # Average the predictions between all models in the inner loop
+    avg_prediction = avg_prediction / 4
+    data.loc[test_partition_mask, 'prediction'] = avg_prediction
+
+# Select columns for output
+data = (data.
+        filter(items = ['A1',
+                        'A2',
+                        'A3',
+                        'B1',
+                        'B2',
+                        'B3',
+                        'peptide',
+                        'binder',
+                        'partition',
+                        'original_index',
+                        'prediction']))
 
 # Save predictions
-pred_df.to_csv('../data/s02_e{}_predictions.csv'.format(experiment_index), index=False)
+data.to_csv(path_or_buf = '../data/s03_e{}_predictions.tsv'.format(experiment_index),
+            sep = '\t',
+            index = False)

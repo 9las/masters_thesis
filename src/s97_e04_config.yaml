@@ -1,5 +1,6 @@
+# This config uses the original paramters from Mathias Jensen
 default:
-    experiment_index: '02'
+    experiment_index: '04'
     seed: 15
     model: CNN_CDR123_global_max
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
@@ -7,7 +8,7 @@ default:
     dropout_rate: 0
     epochs: 200
     batch_size: 64
-    weight_peptides: True
+    weight_peptides: False
     embedding_name_tcr: blosum50_20aa
     embedding_name_peptide: blosum50_20aa
     padding_value_peptide: -5

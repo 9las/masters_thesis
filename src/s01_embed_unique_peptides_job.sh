@@ -1,7 +1,6 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
-#PBS -l nodes=1:gpus=1:ppn=4,mem=12GB,walltime=1:00:00
-#PBS -t 0-19%20
+#PBS -l nodes=1:gpus=1:ppn=4,mem=12GB,walltime=0:30:00
 #PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 #PBS -o /home/projects/vaccine/people/nilsch/masters_thesis/logs/
@@ -12,15 +11,11 @@
 # Go to working directory
 cd $PBS_O_INITDIR
 
-module load tools
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
-conda activate env
-
-t_array=(0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4)
-v_array=(1 2 3 4 0 2 3 4 0 1 3 4 0 1 2 4 0 1 2 3)
+conda activate env_bio_embeddings
 
 # Run model
-./s01_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
+HOME=/home/projects/vaccine/people/nilsch ./s01_embed_unique_peptides.py -c $1
 
 # Get status
 qstat -f -1 $PBS_JOBID

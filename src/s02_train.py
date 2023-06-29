@@ -232,8 +232,8 @@ model = model(dropout_rate = dropout_rate,
               b2_length = b2_length,
               b3_length = b3_length,
               peptide_length = peptide_length,
-              convolution_filters_count,
-              hidden_units_count)
+              convolution_filters_count = convolution_filters_count,
+              hidden_units_count = hidden_units_count)
 
 # Compile model
 auc01 = s99_project_functions.auc01

@@ -53,6 +53,13 @@ learning_rate = config['default']['learning_rate']
 # Set random seed
 keras.utils.set_random_seed(seed)
 
+# Set up keras to use mixed precision if on GPU
+if tf.config.list_physical_devices('GPU'):
+    keras.mixed_precision.set_global_policy('mixed_float16')
+    mixed_precision = True
+else:
+    mixed_precision = False
+
 ### Input/Output ###
 # Read in data
 data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
@@ -229,7 +236,8 @@ model = model(dropout_rate = dropout_rate,
               b1_length = b1_length,
               b2_length = b2_length,
               b3_length = b3_length,
-              peptide_length = peptide_length)
+              peptide_length = peptide_length,
+              mixed_precision = mixed_precision)
 
 # Compile model
 auc01 = s99_project_functions.auc01

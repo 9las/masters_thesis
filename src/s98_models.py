@@ -21,7 +21,9 @@ def CNN_CDR123_global_max(dropout_rate,
                           b1_length,
                           b2_length,
                           b3_length,
-                          peptide_length):
+                          peptide_length,
+                          convolution_filters_count,
+                          hidden_units_count):
 
     #Activation
     conv_activation = "relu"
@@ -37,47 +39,47 @@ def CNN_CDR123_global_max(dropout_rate,
     b3 = keras.Input(shape = (b3_length, embedding_size_tcr), name ="b3")
 
     #Convolutional Layers
-    pep_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(pep)
-    pep_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(pep)
-    pep_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(pep)
-    pep_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(pep)
-    pep_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(pep)
+    pep_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(pep)
+    pep_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(pep)
+    pep_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(pep)
+    pep_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(pep)
+    pep_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(pep)
 
-    a1_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(a1)
-    a1_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(a1)
-    a1_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(a1)
-    a1_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(a1)
-    a1_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(a1)
+    a1_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(a1)
+    a1_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(a1)
+    a1_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(a1)
+    a1_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(a1)
+    a1_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(a1)
 
-    a2_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(a2)
-    a2_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(a2)
-    a2_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(a2)
-    a2_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(a2)
-    a2_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(a2)
+    a2_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(a2)
+    a2_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(a2)
+    a2_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(a2)
+    a2_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(a2)
+    a2_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(a2)
 
-    a3_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(a3)
-    a3_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(a3)
-    a3_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(a3)
-    a3_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(a3)
-    a3_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(a3)
+    a3_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(a3)
+    a3_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(a3)
+    a3_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(a3)
+    a3_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(a3)
+    a3_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(a3)
     
-    b1_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(b1)
-    b1_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(b1)
-    b1_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(b1)
-    b1_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(b1)
-    b1_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(b1)
+    b1_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(b1)
+    b1_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(b1)
+    b1_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(b1)
+    b1_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(b1)
+    b1_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(b1)
     
-    b2_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(b2)
-    b2_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(b2)
-    b2_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(b2)
-    b2_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(b2)
-    b2_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(b2)
+    b2_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(b2)
+    b2_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(b2)
+    b2_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(b2)
+    b2_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(b2)
+    b2_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(b2)
     
-    b3_1_CNN = layers.Conv1D(filters = 16, kernel_size = 1, padding = "same", activation = conv_activation)(b3)
-    b3_3_CNN = layers.Conv1D(filters = 16, kernel_size = 3, padding = "same", activation = conv_activation)(b3)
-    b3_5_CNN = layers.Conv1D(filters = 16, kernel_size = 5, padding = "same", activation = conv_activation)(b3)
-    b3_7_CNN = layers.Conv1D(filters = 16, kernel_size = 7, padding = "same", activation = conv_activation)(b3)
-    b3_9_CNN = layers.Conv1D(filters = 16, kernel_size = 9, padding = "same", activation = conv_activation)(b3) 
+    b3_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = "same", activation = conv_activation)(b3)
+    b3_3_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 3, padding = "same", activation = conv_activation)(b3)
+    b3_5_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 5, padding = "same", activation = conv_activation)(b3)
+    b3_7_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 7, padding = "same", activation = conv_activation)(b3)
+    b3_9_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 9, padding = "same", activation = conv_activation)(b3) 
     
     #Max Pooling
     pep_1_pool = layers.GlobalMaxPooling1D()(pep_1_CNN)
@@ -135,7 +137,7 @@ def CNN_CDR123_global_max(dropout_rate,
     cat_dropout = layers.Dropout(dropout_rate, seed = seed)(cat)
     
     #Dense layer
-    dense = layers.Dense(units = 64, activation = dense_activation)(cat_dropout)
+    dense = layers.Dense(units = hidden_units_count, activation = dense_activation)(cat_dropout)
     
     #Output layer
     out = layers.Dense(units = 1, activation = "sigmoid")(dense)

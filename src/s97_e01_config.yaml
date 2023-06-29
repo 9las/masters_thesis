@@ -21,3 +21,5 @@ default:
     peptide_normalization_divisor: 5
     tcr_normalization_divisor: 5
     learning_rate: 0.001
+    convolution_filters_count: 16
+    hidden_units_count: 64

@@ -49,6 +49,8 @@ peptide_selection = config['default']['peptide_selection']
 peptide_normalization_divisor = config['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 learning_rate = config['default']['learning_rate']
+convolution_filters_count = config['default']['convolution_filters_count']
+hidden_units_count = config['default']['hidden_units_count']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
@@ -229,7 +231,9 @@ model = model(dropout_rate = dropout_rate,
               b1_length = b1_length,
               b2_length = b2_length,
               b3_length = b3_length,
-              peptide_length = peptide_length)
+              peptide_length = peptide_length,
+              convolution_filters_count,
+              hidden_units_count)
 
 # Compile model
 auc01 = s99_project_functions.auc01

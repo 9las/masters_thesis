@@ -1,77 +1,177 @@
 #!/usr/bin/env Rscript
 library(tidyverse)
 library(svglite)
-library(argparser)
-library(config)
+library(fs)
+library(patchwork)
 
-# Input arguments
-parser <- arg_parser(description = "Plot the model performance")
-parser <- add_argument(parser = parser,
-                       arg = "--config",
-                       help = "Path to YAML configuration file")
-args <- parse_args(parser)
-config_filename <- args$config
+# Read data
 
-# Load config
-config <- config::get(file = config_filename)
+file_paths <- dir_ls(path = "../data/",
+                     regexp = "s04_e\\d{2}_performance.tsv")
 
-experiment_index = config$experiment_index
+file_paths_summary <- dir_ls(path = "../data/",
+                             regexp = "s04_e\\d{2}_performance_summary.tsv")
 
-data <- read_tsv(file = str_glue("../data/s03_e{experiment_index}_performance.tsv"),
+data <- read_tsv(file = file_paths,
                  col_types = cols(peptide = col_factor(),
-                                  count_positive = col_integer()))
+                                  count_positive = col_integer()),
+                 id = "path")
 
-data_summary <- read_tsv(file = str_glue("../data/s03_e{experiment_index}_performance_summary.tsv"),
-                         col_types = cols(statistic = col_factor()))
+data_summary <- read_tsv(file = file_paths_summary,
+                 col_types = cols(statistic = col_factor()),
+                 id = "path")
 
 data <- data |>
-  pivot_longer(cols = c(auc,
-                        auc01,
-                        ppv),
-               names_to = "metric",
-               values_to = "performance") |>
-  mutate(metric = case_when(metric == "auc" ~ "AUC",
-                            metric == "auc01" ~ "AUC 0.1",
-                            metric == "ppv" ~ "PPV") |>
+  mutate(experiment_index = str_sub(path,
+                                    start = 13L,
+                                    end = -17L) |>
            as_factor(),
+         experiment_name = experiment_index |>
+           fct_recode("Dropout and weighting" = "e01",
+                      "Weighting only" = "e02",
+                      "Dropout only" = "e03",
+                      "No dropout and no weighting" = "e04",
+                      "ESM1b" = "e05") |>
+           fct_relevel("No dropout and no weighting",
+                       "Weighting only",
+                       "Dropout only",
+                       "Dropout and weighting",
+                       "ESM1b"),
          peptide_count_positive = str_glue("{peptide} ({count_positive})"))
 
+
 data_summary <- data_summary |>
-  pivot_longer(cols = c(auc,
-                        auc01,
-                        ppv),
-               names_to = "metric",
-               values_to = "performance") |>
-  mutate(metric = case_when(metric == "auc" ~ "AUC",
-                            metric == "auc01" ~ "AUC 0.1",
-                            metric == "ppv" ~ "PPV") |>
+  mutate(experiment_index = str_sub(path,
+                                    start = 13L,
+                                    end = -25L) |>
            as_factor(),
+         experiment_name = experiment_index |>
+           fct_recode("Dropout and weighting" = "e01",
+                      "Weighting only" = "e02",
+                      "Dropout only" = "e03",
+                      "No dropout and no weighting" = "e04",
+                      "ESM1b" = "e05") |>
+           fct_relevel("No dropout and no weighting",
+                       "Weighting only",
+                       "Dropout only",
+                       "Dropout and weighting",
+                       "ESM1b"),
          statistic = if_else(condition = statistic == "mean",
                              true = "Mean",
-                             false = "Weighted mean"))
+                             false = "Weighted mean"),
+         statistic_count_positive = str_glue("{statistic} ({count_positive})"))
 
-p <- data |>
-  ggplot(mapping = aes(x = performance,
-                       y = peptide_count_positive |>
-                         as_factor() |> 
-                         fct_rev(),
-                       color = metric,
-                       group = metric))+
-  geom_point()+
-  geom_path()+
-  geom_vline(mapping = aes(xintercept = performance,
-                           color = metric,
-                           linetype = statistic),
-             data = data_summary)+
-  xlim(0, 1)+
-  labs(x = "Performance",
-       y = "Peptide",
-       color = "Metric",
-       linetype = "Statistic")+
+# AUC plot
+p1 <- data |>
+  ggplot(mapping = aes(x = peptide_count_positive |>
+                         as_factor(),
+                       y = auc,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Peptide",
+       fill = "Experiment")+
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+  
+
+p2 <- data_summary |>
+  ggplot(mapping = aes(x = statistic_count_positive,
+                       y = auc,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Statistic",
+       y = "AUC",
+       fill = "Experiment")
+
+p <- p2+
+  p1+
+  plot_layout(guides = "collect",
+              widths = c(0.075, 0.925))&
   theme(legend.position = "top",
-        legend.justification = "left")
+        legend.justification = "left",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
+  ylim(0, 1)
 
-ggsave(filename = str_glue("s04_e{experiment_index}_performance_plot.svg"),
+ggsave(filename = "s05_auc_plot.svg",
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+# AUC 0.1 plot
+p1 <- data |>
+  ggplot(mapping = aes(x = peptide_count_positive |>
+                         as_factor(),
+                       y = auc01,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Peptide",
+       fill = "Experiment")+
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+
+p2 <- data_summary |>
+  ggplot(mapping = aes(x = statistic_count_positive,
+                       y = auc01,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Statistic",
+       y = "AUC 0.1",
+       fill = "Experiment")
+
+p <- p2+
+  p1+
+  plot_layout(guides = "collect",
+              widths = c(0.075, 0.925))&
+  theme(legend.position = "top",
+        legend.justification = "left",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
+  ylim(0, 1)
+
+ggsave(filename = "s05_auc01_plot.svg",
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+# PPV plot
+p1 <- data |>
+  ggplot(mapping = aes(x = peptide_count_positive |>
+                         as_factor(),
+                       y = ppv,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Peptide",
+       fill = "Experiment")+
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+
+p2 <- data_summary |>
+  ggplot(mapping = aes(x = statistic_count_positive,
+                       y = ppv,
+                       fill = experiment_name))+
+  geom_col(position = "dodge")+
+  labs(x = "Statistic",
+       y = "PPV",
+       fill = "Experiment")
+
+p <- p2+
+  p1+
+  plot_layout(guides = "collect",
+              widths = c(0.075, 0.925))&
+  theme(legend.position = "top",
+        legend.justification = "left",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))&
+  ylim(0, 1)
+
+ggsave(filename = "s05_ppv_plot.svg",
        plot = p,
        path = "../results",
        width = 30,

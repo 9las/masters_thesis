@@ -142,9 +142,9 @@ def CNN_CDR123_global_max(dropout_rate,
     out = layers.Dense(units = 1)(dense)
 
     if mixed_precision:
-        out = layers.Activation(activation = "sigmoid", dtype='float32')(dense)
+        out = layers.Activation(activation = "sigmoid", dtype='float32')(out)
     else:
-        out = layers.Activation(activation = "sigmoid")(dense)
+        out = layers.Activation(activation = "sigmoid")(out)
 
     #Prepare model object
     model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],

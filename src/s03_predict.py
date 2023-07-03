@@ -34,6 +34,7 @@ peptide_normalization_divisor = config['default']['peptide_normalization_divisor
 tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 seed=config['default']['seed']
 data_file_name = config['default']['data']
+model_name = config['default']['model']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
@@ -132,6 +133,26 @@ for t in range(partitions_count):
     b1_test = np.stack(arrays = df_test['b1_encoded'])
     b2_test = np.stack(arrays = df_test['b2_encoded'])
     b3_test = np.stack(arrays = df_test['b3_encoded'])
+
+    if model_name == 'ff_CDR123':
+        # Flatten peptide array
+        peptide_test = np.reshape(a = peptide_test,
+                                  newshape = (peptide_test.shape[0],
+                                              -1))
+
+        # Reduce embeddings of CDRs to be per CDR instead of per amino acid
+        a1_test = np.mean(a = a1_test,
+                          axis = 1)
+        a2_test = np.mean(a = a2_test,
+                          axis = 1)
+        a3_test = np.mean(a = a3_test,
+                          axis = 1)
+        b1_test = np.mean(a = b1_test,
+                          axis = 1)
+        b2_test = np.mean(a = b2_test,
+                          axis = 1)
+        b3_test = np.mean(a = b3_test,
+                          axis = 1)
 
     # Normalise embeddings
     peptide_test = peptide_test / peptide_normalization_divisor

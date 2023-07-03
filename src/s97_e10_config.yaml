@@ -1,11 +1,12 @@
-# ESM1b with thrice the amount of convolution filters and hidden units
+# ESM1b with feed forward model architecture
+# No dropout
 default:
-    experiment_index: '07'
+    experiment_index: '10'
     seed: 15
-    model: CNN_CDR123_global_max
+    model: ff_CDR123
     data: nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv
     patience: 100
-    dropout_rate: 0.6
+    dropout_rate: 0
     epochs: 200
     batch_size: 64
     weight_peptides: True
@@ -21,5 +22,5 @@ default:
     peptide_normalization_divisor: 5
     tcr_normalization_divisor: 20
     learning_rate: 0.001
-    convolution_filters_count: 48
-    hidden_units_count: 192
+    convolution_filters_count: null
+    hidden_units_count: 64

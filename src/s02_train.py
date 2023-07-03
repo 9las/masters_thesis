@@ -192,6 +192,43 @@ b3_validation = np.stack(arrays = df_validation['b3_encoded'])
 binder_validation = np.asarray(df_validation['binder'])
 weight_validation = np.asarray(df_validation['weight'])
 
+if model_name == 'ff_CDR123':
+    # Flatten peptide array
+    peptide_train = np.reshape(a = peptide_train,
+                               newshape = (peptide_train.shape[0],
+                                           -1))
+    peptide_validation = np.reshape(a = peptide_validation,
+                               newshape = (peptide_validation.shape[0],
+                                           -1))
+
+    # Reduce embeddings of CDRs to be per CDR instead of per amino acid
+    a1_train = np.mean(a = a1_train,
+                       axis = 1)
+    a2_train = np.mean(a = a2_train,
+                       axis = 1)
+    a3_train = np.mean(a = a3_train,
+                       axis = 1)
+    b1_train = np.mean(a = b1_train,
+                       axis = 1)
+    b2_train = np.mean(a = b2_train,
+                       axis = 1)
+    b3_train = np.mean(a = b3_train,
+                       axis = 1)
+
+
+    a1_validation = np.mean(a = a1_validation,
+                            axis = 1)
+    a2_validation = np.mean(a = a2_validation,
+                            axis = 1)
+    a3_validation = np.mean(a = a3_validation,
+                            axis = 1)
+    b1_validation = np.mean(a = b1_validation,
+                            axis = 1)
+    b2_validation = np.mean(a = b2_validation,
+                            axis = 1)
+    b3_validation = np.mean(a = b3_validation,
+                            axis = 1)
+
 # Normalise embeddings
 peptide_train = peptide_train / peptide_normalization_divisor
 a1_train = a1_train / tcr_normalization_divisor
@@ -210,30 +247,37 @@ b2_validation = b2_validation / tcr_normalization_divisor
 b3_validation = b3_validation / tcr_normalization_divisor
 
 # Get model architecture
-peptide_length = peptide_train.shape[1]
-a1_length = a1_train.shape[1]
-a2_length = a2_train.shape[1]
-a3_length = a3_train.shape[1]
-b1_length = b1_train.shape[1]
-b2_length = b2_train.shape[1]
-b3_length = b3_train.shape[1]
-embedding_size_peptide = peptide_train.shape[2]
-embedding_size_tcr = a1_train.shape[2]
-
 model = getattr(s98_models, model_name)
-model = model(dropout_rate = dropout_rate,
-              seed = seed,
-              embedding_size_peptide = embedding_size_peptide,
-              embedding_size_tcr = embedding_size_tcr,
-              a1_length = a1_length,
-              a2_length = a2_length,
-              a3_length = a3_length,
-              b1_length = b1_length,
-              b2_length = b2_length,
-              b3_length = b3_length,
-              peptide_length = peptide_length,
-              convolution_filters_count = convolution_filters_count,
-              hidden_units_count = hidden_units_count)
+peptide_shape = peptide_train.shape[1:]
+
+if model_name == 'CNN_CDR123_global_max':
+    a1_shape = a1_train.shape[1:]
+    a2_shape = a2_train.shape[1:]
+    a3_shape = a3_train.shape[1:]
+    b1_shape = b1_train.shape[1:]
+    b2_shape = b2_train.shape[1:]
+    b3_shape = b3_train.shape[1:]
+
+    model = model(dropout_rate = dropout_rate,
+                  seed = seed,
+                  peptide_shape = peptide_shape,
+                  a1_shape = a1_shape,
+                  a2_shape = a2_shape,
+                  a3_shape = a3_shape,
+                  b1_shape = b1_shape,
+                  b2_shape = b2_shape,
+                  b3_shape = b3_shape,
+                  convolution_filters_count = convolution_filters_count,
+                  hidden_units_count = hidden_units_count)
+
+elif model_name == 'ff_CDR123':
+    cdr_shape = a1_train.shape[1:]
+
+    model = model(dropout_rate = dropout_rate,
+                  seed = seed,
+                  peptide_shape = peptide_shape,
+                  cdr_shape = cdr_shape,
+                  hidden_units_count = hidden_units_count)
 
 # Compile model
 auc01 = s99_project_functions.auc01

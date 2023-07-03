@@ -173,3 +173,5 @@ def ff_CDR123(dropout_rate,
     # Prepare model object
     model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],
                         outputs = out)
+
+    return model

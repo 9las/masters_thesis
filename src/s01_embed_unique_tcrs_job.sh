@@ -11,8 +11,12 @@
 # Go to working directory
 cd $PBS_O_INITDIR
 
+#module load tools
+#module load bio-embeddings/0.2.2
+#module load bio-embeddings/20220804
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env_bio_embeddings
+#conda activate masters_thesis_bio_embeddings
 
 # Run model
 HOME=/home/projects/vaccine/people/nilsch ./s01_embed_unique_tcrs.py -c $1

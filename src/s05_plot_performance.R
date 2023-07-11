@@ -3,39 +3,22 @@ library(tidyverse)
 library(svglite)
 library(fs)
 library(patchwork)
+library(glue)
 
 # Read data ---------------------------------------------------------------
 
-file_paths <- dir_ls(path = "../data/",
-                     regexp = "s04_e\\d{2}_performance.tsv")
-
-file_paths_summary <- dir_ls(path = "../data/",
-                             regexp = "s04_e\\d{2}_performance_summary.tsv")
-
-data <- read_tsv(file = file_paths,
+data <- read_tsv(file = "../data/s04_performance.tsv",
                  col_types = cols(peptide = col_factor(),
-                                  count_positive = col_integer()),
-                 id = "path")
+                                  count_positive = col_integer()))
 
-data_summary <- read_tsv(file = file_paths_summary,
-                 col_types = cols(statistic = col_factor()),
-                 id = "path")
+data_summary <- read_tsv(file = "../data/s04_performance_summary.tsv",
+                         col_types = cols(statistic = col_factor()))
 
 data <- data |>
-  mutate(experiment_index = str_sub(path,
-                                    start = 14L,
-                                    end = -17L) |>
-           str_remove(pattern = "^0+") |>
-           as.numeric(),
-         peptide_count_positive = str_glue("{peptide} ({count_positive})"))
+  mutate(peptide_count_positive = str_glue("{peptide} ({count_positive})"))
 
 data_summary <- data_summary |>
-  mutate(experiment_index = str_sub(path,
-                                    start = 14L,
-                                    end = -25L) |>
-           str_remove(pattern = "^0+") |>
-           as.numeric(),
-         statistic = if_else(condition = statistic == "mean",
+  mutate(statistic = if_else(condition = statistic == "mean",
                              true = "Mean",
                              false = "Weighted mean"),
          statistic_count_positive = str_glue("{statistic} ({count_positive})"))
@@ -44,23 +27,20 @@ data_summary <- data_summary |>
 # Functions ---------------------------------------------------------------
 
 plot_performance <- function(data, data_summary, metric) {
-  metric_name <- metric |>
-    substitute() |>
-    deparse()
-  
-  if (metric_name == "auc") {
+
+  if (metric == "auc") {
     y_label <- "AUC"
-  } else if (metric_name == "auc01") {
+  } else if (metric == "auc01") {
     y_label <- "AUC 0.1"
-  } else if (metric_name == "ppv") {
+  } else if (metric == "ppv") {
     y_label <- "PPV"
   }
   
   p1 <- data |>
     ggplot(mapping = aes(x = peptide_count_positive |>
                            as_factor(),
-                         y = {{ metric }},
-                         fill = experiment_name))+
+                         y = .data[[metric]],
+                         fill = experiment_index_name))+
     geom_col(position = "dodge")+
     labs(x = "Peptide",
          fill = "Experiment")+
@@ -71,8 +51,8 @@ plot_performance <- function(data, data_summary, metric) {
   
   p2 <- data_summary |>
     ggplot(mapping = aes(x = statistic_count_positive,
-                         y = {{ metric }},
-                         fill = experiment_name))+
+                         y = .data[[metric]],
+                         fill = experiment_index_name))+
     geom_col(position = "dodge")+
     labs(x = "Statistic",
          y = y_label,
@@ -122,7 +102,7 @@ get_delta_performance_count_sign_table <- function(data,
     mutate(across(.cols = c(auc,
                             auc01,
                             ppv),
-                  .fns = \(x) x - (data_subset |>
+                  .fns = \(x) x - (data |>
                                      filter(experiment_index == experiment_index_base) |>
                                      pull(x)),
                   .names = "{.col}_delta")) |>
@@ -151,243 +131,106 @@ get_delta_performance_count_sign_table <- function(data,
                 .cols = ends_with("_delta"))
 }
 
-# Dropout and weighting ---------------------------------------------------
+subset_data <- function(data, experiment_index_to_name_list){
+  experiment_index_to_index_name_list <- experiment_index_to_name_list
+  experiment_index_to_index_name_list |>
+    names() <- str_c(experiment_index_to_name_list,
+                     experiment_index_to_name_list |>
+                       names(),
+                     sep = " - ")
+  
+  data |>
+    filter(experiment_index %in% experiment_index_to_name_list) |>
+    mutate(experiment_name = experiment_index |>
+             as_factor() |>
+             fct_recode(!!!experiment_index_to_name_list) |>
+             fct_relevel(experiment_index_to_name_list |>
+                           names()),
+           experiment_index_name = experiment_index |>
+             as_factor() |>
+             fct_recode(!!!experiment_index_to_index_name_list) |>
+             fct_relevel(experiment_index_to_index_name_list |>
+                           names()))
+}
 
-## Subset data ------------------------------------------------------------
-data_subset <- data |> 
-  filter(experiment_index >= 1,
-         experiment_index <= 4) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("Dropout and weighting" = "1",
-                      "Weighting only" = "2",
-                      "Dropout only" = "3",
-                      "No dropout and no weighting" = "4") |>
-           fct_relevel("No dropout and no weighting",
-                       "Weighting only",
-                       "Dropout only",
-                       "Dropout and weighting"))
-
-data_summary_subset <- data_summary |>
-  filter(experiment_index >= 1,
-         experiment_index <= 4) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("Dropout and weighting" = "1",
-                      "Weighting only" = "2",
-                      "Dropout only" = "3",
-                      "No dropout and no weighting" = "4") |>
-           fct_relevel("No dropout and no weighting",
-                       "Weighting only",
-                       "Dropout only",
-                       "Dropout and weighting"))
-
-## AUC plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc)
-
-ggsave(filename = "s05_plot__dropout_and_weighting__auc.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-
-## AUC 0.1 plot -----------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc01)
-
-ggsave(filename = "s05_plot__dropout_and_weighting__auc01.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-
-## PPV plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = ppv)
-
-ggsave(filename = "s05_plot__dropout_and_weighting__ppv.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-
-## Table with delta mean performance metrics ------------------------------
-delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
-                                                                 experiment_index_base = 4)
-
-delta_mean_performance_table |>
-  write_tsv(file = "../results/s05_table__dropout_and_weighting__delta_mean_performance.tsv")
-
-
-
-## Table where sign of deltas are counted ---------------------------------
-delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
-                                                                             experiment_index_base = 4)
-
-delta_performance_count_sign_table |>
-  write_tsv(file = "../results/s05_table__dropout_and_weighting__delta_performance_count_sign.tsv")
-
-
-# ESM1b vs BLOSUM50 -------------------------------------------------------
-
-## Subset data ------------------------------------------------------------
-data_subset <- data |> 
-  filter(experiment_index == 1
-         | experiment_index == 5) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("BLOSUM50" = "1",
-                      "ESM1b" = "5") |>
-           fct_relevel("BLOSUM50",
-                       "ESM1b"))
-
-data_summary_subset <- data_summary |>
-  filter(experiment_index == 1
-         | experiment_index == 5) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("BLOSUM50" = "1",
-                      "ESM1b" = "5") |>
-           fct_relevel("BLOSUM50",
-                       "ESM1b"))
-
-## AUC plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc)
-
-ggsave(filename = "s05_plot__esm1b_vs_blosum50__auc.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## AUC 0.1 plot -----------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc01)
-
-ggsave(filename = "s05_plot__esm1b_vs_blosum50__auc01.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## PPV plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = ppv)
-
-ggsave(filename = "s05_plot__esm1b_vs_blosum50__ppv.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## Table with delta mean performance metrics ------------------------------
-delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
-                                                                 experiment_index_base = 1)
-
-delta_mean_performance_table |>
-  write_tsv(file = "../results/s05_table__esm1b_vs_blosum50__delta_mean_performance.tsv")
-
-## Table where sign of deltas are counted ---------------------------------
-delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
-                                                                             experiment_index_base = 1)
-
-delta_performance_count_sign_table |>
-  write_tsv(file = "../results/s05_table__esm1b_vs_blosum50__delta_performance_count_sign.tsv")
-
-
-# ESM1b - compare different architecture sizes ----------------------------
-
-## Subset data ------------------------------------------------------------
-data_subset <- data |> 
-  filter(experiment_index >= 5,
-         experiment_index <= 7) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("ESM1b" = "5",
-                      "ESM1b 2X" = "6",
-                      "ESM1b 3X" = "7") |>
-           fct_relevel("ESM1b",
-                       "ESM1b 2X",
-                       "ESM1b 3X"))
-
-data_summary_subset <- data_summary |>
-  filter(experiment_index >= 5,
-         experiment_index <= 7) |>
-  mutate(experiment_name = experiment_index |>
-           as_factor() |>
-           fct_recode("ESM1b" = "5",
-                      "ESM1b 2X" = "6",
-                      "ESM1b 3X" = "7") |>
-           fct_relevel("ESM1b",
-                       "ESM1b 2X",
-                       "ESM1b 3X"))
-
-## AUC plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc)
-
-ggsave(filename = "s05_plot__esm1b_sizes__auc.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## AUC 0.1 plot
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = auc01)
-
-ggsave(filename = "s05_plot__esm1b_sizes__auc01.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## PPV plot ---------------------------------------------------------------
-p <- plot_performance(data = data_subset,
-                      data_summary = data_summary_subset,
-                      metric = ppv)
-
-ggsave(filename = "s05_plot__esm1b_sizes__ppv.svg",
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-## Table with delta mean performance metrics ------------------------------
-delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
-                                                                 experiment_index_base = 5)
-
-delta_mean_performance_table |>
-  write_tsv(file = "../results/s05_table__esm1b_sizes__delta_mean_performance.tsv")
-
-## Table where sign of deltas are counted ---------------------------------
-delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
-                                                                             experiment_index_base = 5)
-
-delta_performance_count_sign_table |>
-  write_tsv(file = "../results/s05_table__esm1b_sizes__delta_performance_count_sign.tsv")
-
-
-# ESM1b 3X - compare different number of epochs ---------------------------
+pwalk(.l = list(experiment_index_to_name_list = list(c("No dropout and no weighting" = "4",
+                                                       "Weighting only" = "2",
+                                                       "Dropout only" = "3",
+                                                       "Dropout and weighting" = "1"),
+                                                     c("BLOSUM50" = "1",
+                                                       "ESM1b" = "5"),
+                                                     c("ESM1b" = "5",
+                                                       "ESM1b 2X" = "6",
+                                                       "ESM1b 3X" = "7"),
+                                                     c("200 epochs" = "7",
+                                                       "400 epochs" = "8"),
+                                                     c("CNN" = "5",
+                                                       "FFNN" = "9"),
+                                                     c("No dropout" = "10",
+                                                       "With dropout" = "9"),
+                                                     c("ESM1b" = "5",
+                                                       "Protrans T5-XL-U50" = "11"),
+                                                     c("Normalization divisor of 20" = "11",
+                                                       "Normalization divisor of 1" = "12"),
+                                                     c("ESM1b - TCR only" = "5",
+                                                       "ESM1b - both" = "13")),
+                name = c("dropout_and_weighting",
+                         "esm1b_vs_blosum50",
+                         "esm1b_sizes",
+                         "esm1b3x_epochs",
+                         "esm1b_cnn_vs_ffnn",
+                         "esm1b_ffnn_dropout",
+                         "esm1b_vs_protrans_t5-xl-u50",
+                         "protrans_t5-xl-u50_normalization_divisor",
+                         "esm1b_peptide"),
+                experiment_index_base = c(4,
+                                          1,
+                                          5,
+                                          7,
+                                          5,
+                                          10,
+                                          5,
+                                          11,
+                                          5)),
+      .f =  \(experiment_index_to_name_list,
+              name,
+              experiment_index_base){
+        
+        # Subset data
+        data_subset <- data |>
+          subset_data(experiment_index_to_name_list = experiment_index_to_name_list)
+        
+        data_summary_subset <- data_summary |>
+          subset_data(experiment_index_to_name_list = experiment_index_to_name_list)
+        
+        # Plotting
+        walk(.x = c("auc",
+                    "auc01",
+                    "ppv"),
+             .f = \(metric){
+               p <- plot_performance(data = data_subset,
+                                     data_summary = data_summary_subset,
+                                     metric = metric)
+               
+               ggsave(filename = glue('s05_plot__{name}__{metric}.svg'),
+                      plot = p,
+                      path = "../results",
+                      width = 30,
+                      height = 20,
+                      units = "cm")
+             })
+        
+        # Table with delta mean performance metrics
+        delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
+                                                                         experiment_index_base = experiment_index_base)
+        
+        delta_mean_performance_table |>
+          write_tsv(file = glue('../results/s05_table__{name}__delta_mean_performance.tsv'))
+        
+        # Table where sign of deltas are counted
+        delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
+                                                                                     experiment_index_base = experiment_index_base)
+        
+        delta_performance_count_sign_table |>
+          write_tsv(file = glue('../results/s05_table__{name}__delta_performance_count_sign.tsv'))
+      })

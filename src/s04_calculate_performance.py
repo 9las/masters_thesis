@@ -5,24 +5,9 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
-import s99_project_functions
-import argparse
-import yaml
+import glob
 
-#Input arguments
-parser = argparse.ArgumentParser() 
-parser.add_argument("-c", "--config")
-args = parser.parse_args()
-config_filename = args.config
-
-# Load config
-config = s99_project_functions.load_config(config_filename)
-
-experiment_index = config['default']['experiment_index']
-
-data = pd.read_csv(filepath_or_buffer = '../data/s03_e{}_predictions.tsv'.format(experiment_index),
-                   sep = '\t')
-
+# Functions
 def ppv(y_true, y_score):
     """Calculate positive predictive value (PPV)"""
     n_total = len(y_score)
@@ -32,9 +17,33 @@ def ppv(y_true, y_score):
     ppv = n_true_top / n_top
     return ppv
 
+# Load data
+file_path_iterator = glob.glob(pathname = '../data/s03_e*_predictions.tsv')
+
+df_list = []
+for file_path in file_path_iterator:
+    df = (pd.read_csv(filepath_or_buffer = file_path,
+                       sep = '\t')
+            .assign(file_path = file_path))
+
+    df_list.append(df)
+
+data = pd.concat(objs = df_list,
+                 ignore_index = True)
+
+# Process data
 
 data = (data
-        .groupby(['peptide'])
+        .assign(experiment_index = lambda x: (x['file_path']
+                                              .str.removeprefix(prefix = '../data/s03_e')
+                                              .str.removesuffix(suffix = '_predictions.tsv')
+                                              .str.lstrip(to_strip = '0')))
+        .assign(experiment_index = lambda x: pd.to_numeric(x['experiment_index'])))
+
+# Create table with performance metrics per peptide
+data = (data
+        .groupby(['experiment_index',
+                  'peptide'])
         .apply(func = lambda x:  pd.Series(data = [x['binder'].sum(),
                                                    roc_auc_score(y_true = x['binder'],
                                                                  y_score = x['prediction']),
@@ -48,25 +57,44 @@ data = (data
                                                     'auc01',
                                                     'ppv'],
                                            dtype = object))
-        .sort_values(by = ['count_positive'],
-                     ascending = False))
+        .sort_values(by = ['experiment_index',
+                           'count_positive'],
+                     ascending = [True,
+                                  False]))
 
-data_summary = pd.DataFrame(data = {'statistic': ['mean',
-                                                  'weighted_mean'],
-                                    'count_positive': data['count_positive'].sum(),
-                                    'auc': [data['auc'].mean(),
-                                            np.average(a = data['auc'],
-                                                       weights = data['count_positive'])],
-                                    'auc01': [data['auc01'].mean(),
-                                              np.average(a = data['auc01'],
-                                                         weights = data['count_positive'])],
-                                    'ppv': [data['ppv'].mean(),
-                                            np.average(a = data['ppv'],
-                                                       weights = data['count_positive'])]})
+# Create table with mean peformance metrics
+data_summary = (data
+                .groupby(['experiment_index'])
+                .apply(func = lambda x: pd.Series(data = [('mean',
+                                                           'weighted_mean'),
+                                                          x['count_positive'].sum(),
+                                                          (x['auc'].mean(),
+                                                           np.average(a = x['auc'],
+                                                                      weights = x['count_positive'])),
+                                                          (x['auc01'].mean(),
+                                                           np.average(a = x['auc01'],
+                                                                      weights = x['count_positive'])),
+                                                          (x['ppv'].mean(),
+                                                           np.average(a = x['ppv'],
+                                                                      weights = x['count_positive']))],
+                                                  index = ['statistic',
+                                                           'count_positive',
+                                                           'auc',
+                                                           'auc01',
+                                                           'ppv'],
+                                                  dtype = object))
+                .explode(['statistic',
+                          'auc',
+                          'auc01',
+                          'ppv'])
+                .sort_values(by = ['statistic',
+                                   'auc01'],
+                             ascending = False))
 
-data.to_csv(path_or_buf = '../data/s04_e{}_performance.tsv'.format(experiment_index),
+# Write tables to files
+
+data.to_csv(path_or_buf = '../data/s04_performance.tsv',
             sep = '\t')
 
-data_summary.to_csv(path_or_buf = '../data/s04_e{}_performance_summary.tsv'.format(experiment_index),
-                    sep = '\t',
-                    index = False)
+data_summary.to_csv(path_or_buf = '../data/s04_performance_summary.tsv',
+                    sep = '\t')

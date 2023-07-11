@@ -6,3 +6,5 @@
 /src/__pycache__
 /src/.Rhistory
 /src/.RData
+/doc/.ipynb_checkpoints/
+/doc/*.html

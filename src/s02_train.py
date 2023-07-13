@@ -328,39 +328,27 @@ history = model.fit(x = {'pep': peptide_train,
                                                                  mode = 'max',
                                                                  save_best_only = True)])
 
-# Get loss and metrics for each epoch during training
-valid_loss = history.history['val_loss']
-train_loss = history.history['loss']
-valid_auc01 = history.history['val_auc01']
-
-# Record metrics at checkpoint
-valid_best = valid_loss[np.argmax(valid_auc01)+1]
-best_epoch = np.argmax(valid_auc01)+1
-best_auc01 = np.max(valid_auc01)
-
 # Create directory to save results in
 if not os.path.exists('../results'):
     os.makedirs('../results')
 
-# Record metrics at checkpoint to file
-outfile = open('../results/s02_e{}_validation_t{}v{}.tsv'.format(experiment_index,t,v), mode = 'w')
-print('t', 'v', 'valid_loss', 'best_auc_0.1', 'best_epoch', sep = '\t', file = outfile)
-print(t, v, valid_best, best_auc01, best_epoch, sep = '\t', file = outfile)
-outfile.close()
+# Get training history
+history_df = pd.DataFrame(data = history.history)
+history_df.index.name = 'epoch'
+history_df.index += 1
 
-# Prepare plotting
-sns.set()
-fig, ax = plt.subplots(figsize=(15, 10))
+# Extract training history at maximum AUC 0.1
+epoch_max_auc01 = history_df['val_auc01'].idxmax()
+history_max_auc01 = history_df.loc[[epoch_max_auc01]]
 
-#Plotting the losses
-ax.plot(train_loss, label='train')
-ax.plot(valid_loss, label='validation')
-ax.set_ylabel('Loss')
-ax.set_xlabel('Epoch')
-ax.legend()
-ax.set_title('Model t.'+str(t)+'.v.'+str(v))
 
-#Save training/validation loss plot
-plt.tight_layout()
-plt.show()
-fig.savefig('../results/s02_e{}_learning_curves_t{}v{}.png'.format(experiment_index,t,v), dpi=200)
+# Write training history to files
+history_df.to_csv(path_or_buf = '../results/s02_e{}_training_history_t{}v{}.tsv'.format(experiment_index,
+                                                                                        t,
+                                                                                        v),
+                  sep = '\t')
+
+history_max_auc01.to_csv(path_or_buf = '../results/s02_e{}_training_history_max_auc01_t{}v{}.tsv'.format(experiment_index,
+                                                                                                         t,
+                                                                                                         v),
+                         sep = '\t')

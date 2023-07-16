@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 library(tidyverse)
 library(svglite)
-library(fs)
 library(patchwork)
 library(glue)
 

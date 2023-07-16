@@ -18,7 +18,7 @@ def ppv(y_true, y_score):
     return ppv
 
 # Load data
-file_path_iterator = glob.glob(pathname = '../data/s03_e*_predictions.tsv')
+file_path_iterator = glob.glob(pathname = '../data/s03_m*_predictions.tsv')
 
 df_list = []
 for file_path in file_path_iterator:
@@ -34,15 +34,15 @@ data = pd.concat(objs = df_list,
 # Process data
 
 data = (data
-        .assign(experiment_index = lambda x: (x['file_path']
-                                              .str.removeprefix(prefix = '../data/s03_e')
+        .assign(model_index = lambda x: (x['file_path']
+                                              .str.removeprefix(prefix = '../data/s03_m')
                                               .str.removesuffix(suffix = '_predictions.tsv')
                                               .str.lstrip(to_strip = '0')))
-        .assign(experiment_index = lambda x: pd.to_numeric(x['experiment_index'])))
+        .assign(model_index = lambda x: pd.to_numeric(x['model_index'])))
 
 # Create table with performance metrics per peptide
 data = (data
-        .groupby(['experiment_index',
+        .groupby(['model_index',
                   'peptide'])
         .apply(func = lambda x:  pd.Series(data = [x['binder'].sum(),
                                                    roc_auc_score(y_true = x['binder'],
@@ -57,14 +57,14 @@ data = (data
                                                     'auc01',
                                                     'ppv'],
                                            dtype = object))
-        .sort_values(by = ['experiment_index',
+        .sort_values(by = ['model_index',
                            'count_positive'],
                      ascending = [True,
                                   False]))
 
 # Create table with mean peformance metrics
 data_summary = (data
-                .groupby(['experiment_index'])
+                .groupby(['model_index'])
                 .apply(func = lambda x: pd.Series(data = [('mean',
                                                            'weighted_mean'),
                                                           x['count_positive'].sum(),

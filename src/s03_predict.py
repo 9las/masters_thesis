@@ -21,7 +21,7 @@ config_filename = args.config
 config = s99_project_functions.load_config(config_filename)
 
 # Set parameters from config
-experiment_index = config['default']['experiment_index']
+model_index = config['default']['model_index']
 embedding_name_tcr = config['default']['embedding_name_tcr']
 embedding_name_peptide = config['default']['embedding_name_peptide']
 padding_value_peptide = config['default']['padding_value_peptide']
@@ -33,8 +33,8 @@ truncating_side_tcr = config['default']['truncating_side_tcr']
 peptide_normalization_divisor = config['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 seed=config['default']['seed']
-data_file_name = config['default']['data']
-model_name = config['default']['model']
+data_filename = config['default']['data_filename']
+model_architecture_name = config['default']['model_architecture_name']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
@@ -42,7 +42,7 @@ keras.utils.set_random_seed(seed)
 ### Input/Output ###
 # Read in data
 data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
-                                                     data_file_name),
+                                                     data_filename),
                    usecols = ['A1',
                               'A2',
                               'A3',
@@ -134,7 +134,7 @@ for t in range(partitions_count):
     b2_test = np.stack(arrays = df_test['b2_encoded'])
     b3_test = np.stack(arrays = df_test['b3_encoded'])
 
-    if model_name == 'ff_CDR123':
+    if model_architecture_name == 'ff_CDR123':
         # Flatten peptide array
         peptide_test = np.reshape(a = peptide_test,
                                   newshape = (peptide_test.shape[0],
@@ -173,7 +173,7 @@ for t in range(partitions_count):
         if v!=t:
 
             # Load the model
-            model = keras.models.load_model(filepath = '../checkpoint/s02_e{}_t{}v{}'.format(experiment_index, t, v),
+            model = keras.models.load_model(filepath = '../checkpoint/s02_m{}_t{}v{}'.format(model_index, t, v),
                                             custom_objects = {'auc01': s99_project_functions.auc01})
 
             # Do prediction by one model
@@ -207,6 +207,6 @@ data = (data.
                         'prediction']))
 
 # Save predictions
-data.to_csv(path_or_buf = '../data/s03_e{}_predictions.tsv'.format(experiment_index),
+data.to_csv(path_or_buf = '../data/s03_m{}_predictions.tsv'.format(model_index),
             sep = '\t',
             index = False)

@@ -4,14 +4,14 @@ library(fs)
 library(glue)
 
 file_paths <- dir_ls(path = "../results",
-                     regexp = "s02_e\\d{2}_training_history_t\\d{1}v\\d{1}.tsv")
+                     regexp = "s02_m\\d{2}_training_history_t\\d{1}v\\d{1}.tsv")
 
 data <- read_tsv(file = file_paths,
                  id = "path")
 
 plot_training_history <- function(data,
                                   data_max_auc01,
-                                  experiment_index,
+                                  model_index,
                                   metric){
   if (metric == "auc") {
     y_label <- "AUC"
@@ -44,15 +44,15 @@ plot_training_history <- function(data,
     labs(x = "Epoch",
          y = y_label,
          color = "Data set",
-         title = glue('Model {experiment_index}'))+
+         title = glue('Model {model_index}'))+
     theme(legend.position = "top",
           legend.justification = "left",
           plot.title.position = "plot")
 }
 
 data <- data |>
-  mutate(experiment_index = path |>
-           str_extract(pattern = "(?<=_e)\\d{2}(?=_)") |>
+  mutate(model_index = path |>
+           str_extract(pattern = "(?<=_m)\\d{2}(?=_)") |>
            str_remove(pattern = "^0+") |>
            as.numeric(),
          test_set_index = path |>
@@ -61,7 +61,7 @@ data <- data |>
            str_extract(pattern = "(?<=v)\\d{1}"),
          .before = path) |>
   select(!path) |>
-  group_by(experiment_index) |>
+  group_by(model_index) |>
   nest() |>
   mutate(data_max_auc01 = data |>
            map(.f = \(x) x |>
@@ -72,16 +72,16 @@ data <- data |>
                         validation_set_index,
                         epoch)))
 
-pwalk(.l = list(experiment_index = data |>
-                  pull(experiment_index),
+pwalk(.l = list(model_index = data |>
+                  pull(model_index),
                 data = data |>
                   pull(data),
                 data_max_auc01 = data |>
                   pull(data_max_auc01)),
-      .f = \(experiment_index,
+      .f = \(model_index,
              data,
              data_max_auc01) {
-        experiment_index_padded <- experiment_index |>
+        model_index_padded <- model_index |>
           str_pad(width = 2,
                   pad = 0)
         walk(.x = c("auc",
@@ -90,10 +90,10 @@ pwalk(.l = list(experiment_index = data |>
              .f = \(metric){
                p <- plot_training_history(data = data,
                                           data_max_auc01 = data_max_auc01,
-                                          experiment_index = experiment_index,
+                                          model_index = model_index,
                                           metric = metric)
                
-               ggsave(filename = glue('s03_e{experiment_index_padded}_plot__training_history__{metric}.svg'),
+               ggsave(filename = glue('s03_m{model_index_padded}_plot__training_history__{metric}.svg'),
                       plot = p,
                       path = "../results",
                       width = 30,

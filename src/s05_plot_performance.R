@@ -26,7 +26,7 @@ data_summary <- data_summary |>
 # Functions ---------------------------------------------------------------
 
 plot_performance <- function(data, data_summary, metric) {
-
+  
   if (metric == "auc") {
     y_label <- "AUC"
   } else if (metric == "auc01") {
@@ -39,10 +39,10 @@ plot_performance <- function(data, data_summary, metric) {
     ggplot(mapping = aes(x = peptide_count_positive |>
                            as_factor(),
                          y = .data[[metric]],
-                         fill = experiment_index_name))+
+                         fill = model_index_name))+
     geom_col(position = "dodge")+
     labs(x = "Peptide",
-         fill = "Experiment")+
+         fill = "Model")+
     theme(axis.title.y = element_blank(),
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank())
@@ -51,11 +51,11 @@ plot_performance <- function(data, data_summary, metric) {
   p2 <- data_summary |>
     ggplot(mapping = aes(x = statistic_count_positive,
                          y = .data[[metric]],
-                         fill = experiment_index_name))+
+                         fill = model_index_name))+
     geom_col(position = "dodge")+
     labs(x = "Statistic",
          y = y_label,
-         fill = "Experiment")
+         fill = "Model")
   
   p2+
     p1+
@@ -68,7 +68,7 @@ plot_performance <- function(data, data_summary, metric) {
 }
 
 get_delta_mean_performance_table <- function(data_summary,
-                                             experiment_index_base){
+                                             model_index_base){
   data_summary |>
     group_by(statistic) |>
     nest() |>
@@ -79,7 +79,7 @@ get_delta_mean_performance_table <- function(data_summary,
                                            ppv),
                                  .fns = function(y){
                                    base_performance <- x |>
-                                     filter(experiment_index == experiment_index_base) |>
+                                     filter(model_index == model_index_base) |>
                                      pull(y)
                                    
                                    y - base_performance
@@ -87,27 +87,27 @@ get_delta_mean_performance_table <- function(data_summary,
                                  .names = "{.col}_delta")))) |>
     unnest(cols = data) |>
     ungroup() |>
-    filter(experiment_index != experiment_index_base) |>
-    select(c(experiment_index,
-             experiment_name,
+    filter(model_index != model_index_base) |>
+    select(c(model_index,
+             model_name,
              statistic,
              ends_with("_delta"))) |>
-    arrange(experiment_index)
+    arrange(model_index)
 }
 
 get_delta_performance_count_sign_table <- function(data,
-                                                   experiment_index_base){
+                                                   model_index_base){
   data |>
     mutate(across(.cols = c(auc,
                             auc01,
                             ppv),
                   .fns = \(x) x - (data |>
-                                     filter(experiment_index == experiment_index_base) |>
+                                     filter(model_index == model_index_base) |>
                                      pull(x)),
                   .names = "{.col}_delta")) |>
-    filter(experiment_index != experiment_index_base) |>
-    group_by(experiment_index,
-             experiment_name) |>
+    filter(model_index != model_index_base) |>
+    group_by(model_index,
+             model_name) |>
     summarise(across(.cols = c(auc_delta,
                                auc01_delta,
                                ppv_delta),
@@ -116,8 +116,8 @@ get_delta_performance_count_sign_table <- function(data,
                                  count_lesser = \(x) (x < 0) |>
                                    sum()),
                      .names = "{.col}.{.fn}")) |>
-    pivot_longer(cols = !c(experiment_index,
-                           experiment_name),
+    pivot_longer(cols = !c(model_index,
+                           model_name),
                  names_to = c(".value",
                               "condition"),
                  names_sep = "\\.") |>
@@ -130,52 +130,52 @@ get_delta_performance_count_sign_table <- function(data,
                 .cols = ends_with("_delta"))
 }
 
-subset_data <- function(data, experiment_index_to_name_list){
-  experiment_index_to_index_name_list <- experiment_index_to_name_list
-  experiment_index_to_index_name_list |>
-    names() <- str_c(experiment_index_to_name_list,
-                     experiment_index_to_name_list |>
+subset_data <- function(data, model_index_to_name_list){
+  model_index_to_index_name_list <- model_index_to_name_list
+  model_index_to_index_name_list |>
+    names() <- str_c(model_index_to_name_list,
+                     model_index_to_name_list |>
                        names(),
                      sep = " - ")
   
   data |>
-    filter(experiment_index %in% experiment_index_to_name_list) |>
-    mutate(experiment_name = experiment_index |>
+    filter(model_index %in% model_index_to_name_list) |>
+    mutate(model_name = model_index |>
              as_factor() |>
-             fct_recode(!!!experiment_index_to_name_list) |>
-             fct_relevel(experiment_index_to_name_list |>
+             fct_recode(!!!model_index_to_name_list) |>
+             fct_relevel(model_index_to_name_list |>
                            names()),
-           experiment_index_name = experiment_index |>
+           model_index_name = model_index |>
              as_factor() |>
-             fct_recode(!!!experiment_index_to_index_name_list) |>
-             fct_relevel(experiment_index_to_index_name_list |>
+             fct_recode(!!!model_index_to_index_name_list) |>
+             fct_relevel(model_index_to_index_name_list |>
                            names()))
 }
 
-pwalk(.l = list(experiment_index_to_name_list = list(c("No dropout and no weighting" = "4",
-                                                       "Weighting only" = "2",
-                                                       "Dropout only" = "3",
-                                                       "Dropout and weighting" = "1"),
-                                                     c("BLOSUM50" = "1",
-                                                       "ESM1b" = "5"),
-                                                     c("ESM1b" = "5",
-                                                       "ESM1b 2X" = "6",
-                                                       "ESM1b 3X" = "7"),
-                                                     c("200 epochs" = "7",
-                                                       "400 epochs" = "8"),
-                                                     c("CNN" = "5",
-                                                       "FFNN" = "9"),
-                                                     c("No dropout" = "10",
-                                                       "With dropout" = "9"),
-                                                     c("ESM1b" = "5",
-                                                       "Protrans T5-XL-U50" = "11"),
-                                                     c("Normalization divisor of 20" = "11",
-                                                       "Normalization divisor of 1" = "12"),
-                                                     c("ESM1b - TCR only" = "5",
-                                                       "ESM1b - both" = "13"),
-                                                     c("BLOSUM50" = "1",
-                                                       "ESM1b" = "6",
-                                                       "Protrans T5-XL-U50" = "11")),
+pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" = "4",
+                                                  "Weighting only" = "2",
+                                                  "Dropout only" = "3",
+                                                  "Dropout and weighting" = "1"),
+                                                c("BLOSUM50" = "1",
+                                                  "ESM1b" = "5"),
+                                                c("ESM1b" = "5",
+                                                  "ESM1b 2X" = "6",
+                                                  "ESM1b 3X" = "7"),
+                                                c("200 epochs" = "7",
+                                                  "400 epochs" = "8"),
+                                                c("CNN" = "5",
+                                                  "FFNN" = "9"),
+                                                c("No dropout" = "10",
+                                                  "With dropout" = "9"),
+                                                c("ESM1b" = "5",
+                                                  "Protrans T5-XL-U50" = "11"),
+                                                c("Normalization divisor of 20" = "11",
+                                                  "Normalization divisor of 1" = "12"),
+                                                c("ESM1b - TCR only" = "5",
+                                                  "ESM1b - both" = "13"),
+                                                c("BLOSUM50" = "1",
+                                                  "ESM1b" = "6",
+                                                  "Protrans T5-XL-U50" = "11")),
                 name = c("dropout_and_weighting",
                          "esm1b_vs_blosum50",
                          "esm1b_sizes",
@@ -186,26 +186,26 @@ pwalk(.l = list(experiment_index_to_name_list = list(c("No dropout and no weight
                          "protrans_t5-xl-u50_normalization_divisor",
                          "esm1b_peptide",
                          "best_embeddings"),
-                experiment_index_base = c(4,
-                                          1,
-                                          5,
-                                          7,
-                                          5,
-                                          10,
-                                          5,
-                                          11,
-                                          5,
-                                          1)),
-      .f =  \(experiment_index_to_name_list,
+                model_index_base = c(4,
+                                     1,
+                                     5,
+                                     7,
+                                     5,
+                                     10,
+                                     5,
+                                     11,
+                                     5,
+                                     1)),
+      .f =  \(model_index_to_name_list,
               name,
-              experiment_index_base){
+              model_index_base){
         
         # Subset data
         data_subset <- data |>
-          subset_data(experiment_index_to_name_list = experiment_index_to_name_list)
+          subset_data(model_index_to_name_list = model_index_to_name_list)
         
         data_summary_subset <- data_summary |>
-          subset_data(experiment_index_to_name_list = experiment_index_to_name_list)
+          subset_data(model_index_to_name_list = model_index_to_name_list)
         
         # Plotting
         walk(.x = c("auc",
@@ -226,14 +226,14 @@ pwalk(.l = list(experiment_index_to_name_list = list(c("No dropout and no weight
         
         # Table with delta mean performance metrics
         delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
-                                                                         experiment_index_base = experiment_index_base)
+                                                                         model_index_base = model_index_base)
         
         delta_mean_performance_table |>
           write_tsv(file = glue('../results/s05_table__{name}__delta_mean_performance.tsv'))
         
         # Table where sign of deltas are counted
         delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
-                                                                                     experiment_index_base = experiment_index_base)
+                                                                                     model_index_base = model_index_base)
         
         delta_performance_count_sign_table |>
           write_tsv(file = glue('../results/s05_table__{name}__delta_performance_count_sign.tsv'))

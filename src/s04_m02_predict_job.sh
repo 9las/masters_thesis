@@ -15,7 +15,7 @@ source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
 # Run model
-./s03_predict.py -c $1
+./s04_predict.py -c $1
 
 # Get status
 qstat -f -1 $PBS_JOBID

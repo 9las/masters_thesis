@@ -207,6 +207,6 @@ data = (data.
                         'prediction']))
 
 # Save predictions
-data.to_csv(path_or_buf = '../data/s03_m{}_predictions.tsv'.format(model_index),
+data.to_csv(path_or_buf = '../data/s04_m{}_predictions.tsv'.format(model_index),
             sep = '\t',
             index = False)

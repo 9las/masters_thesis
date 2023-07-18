@@ -18,7 +18,7 @@ def ppv(y_true, y_score):
     return ppv
 
 # Load data
-file_path_iterator = glob.glob(pathname = '../data/s03_m*_predictions.tsv')
+file_path_iterator = glob.glob(pathname = '../data/s04_m*_predictions.tsv')
 
 df_list = []
 for file_path in file_path_iterator:
@@ -35,7 +35,7 @@ data = pd.concat(objs = df_list,
 
 data = (data
         .assign(model_index = lambda x: (x['file_path']
-                                              .str.removeprefix(prefix = '../data/s03_m')
+                                              .str.removeprefix(prefix = '../data/s04_m')
                                               .str.removesuffix(suffix = '_predictions.tsv')
                                               .str.lstrip(to_strip = '0')))
         .assign(model_index = lambda x: pd.to_numeric(x['model_index'])))
@@ -93,8 +93,8 @@ data_summary = (data
 
 # Write tables to files
 
-data.to_csv(path_or_buf = '../data/s04_performance.tsv',
+data.to_csv(path_or_buf = '../data/s05_performance.tsv',
             sep = '\t')
 
-data_summary.to_csv(path_or_buf = '../data/s04_performance_summary.tsv',
+data_summary.to_csv(path_or_buf = '../data/s05_performance_summary.tsv',
                     sep = '\t')

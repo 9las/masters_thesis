@@ -6,11 +6,11 @@ library(glue)
 
 # Read data ---------------------------------------------------------------
 
-data <- read_tsv(file = "../data/s04_performance.tsv",
+data <- read_tsv(file = "../data/s05_performance.tsv",
                  col_types = cols(peptide = col_factor(),
                                   count_positive = col_integer()))
 
-data_summary <- read_tsv(file = "../data/s04_performance_summary.tsv",
+data_summary <- read_tsv(file = "../data/s05_performance_summary.tsv",
                          col_types = cols(statistic = col_factor()))
 
 data <- data |>
@@ -161,25 +161,22 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                                                 c("ESM1b" = "5",
                                                   "ESM1b 2X" = "6",
                                                   "ESM1b 3X" = "7"),
-                                                c("200 epochs" = "7",
-                                                  "400 epochs" = "8"),
                                                 c("CNN" = "5",
-                                                  "FFNN" = "9"),
-                                                c("No dropout" = "10",
-                                                  "With dropout" = "9"),
+                                                  "FFNN" = "8"),
+                                                c("No dropout" = "9",
+                                                  "With dropout" = "8"),
                                                 c("ESM1b" = "5",
-                                                  "Protrans T5-XL-U50" = "11"),
-                                                c("Normalization divisor of 20" = "11",
-                                                  "Normalization divisor of 1" = "12"),
+                                                  "Protrans T5-XL-U50" = "10"),
+                                                c("Normalization divisor of 20" = "10",
+                                                  "Normalization divisor of 1" = "11"),
                                                 c("ESM1b - TCR only" = "5",
-                                                  "ESM1b - both" = "13"),
+                                                  "ESM1b - both" = "12"),
                                                 c("BLOSUM50" = "1",
                                                   "ESM1b" = "6",
-                                                  "Protrans T5-XL-U50" = "11")),
+                                                  "Protrans T5-XL-U50" = "10")),
                 name = c("dropout_and_weighting",
                          "esm1b_vs_blosum50",
                          "esm1b_sizes",
-                         "esm1b3x_epochs",
                          "esm1b_cnn_vs_ffnn",
                          "esm1b_ffnn_dropout",
                          "esm1b_vs_protrans_t5-xl-u50",
@@ -191,9 +188,9 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                                      5,
                                      7,
                                      5,
-                                     10,
+                                     9,
                                      5,
-                                     11,
+                                     10,
                                      5,
                                      1)),
       .f =  \(model_index_to_name_list,
@@ -216,7 +213,7 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                                      data_summary = data_summary_subset,
                                      metric = metric)
                
-               ggsave(filename = glue('s05_plot__{name}__{metric}.svg'),
+               ggsave(filename = glue('s06_plot__{name}__{metric}.svg'),
                       plot = p,
                       path = "../results",
                       width = 30,
@@ -229,12 +226,12 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                                                                          model_index_base = model_index_base)
         
         delta_mean_performance_table |>
-          write_tsv(file = glue('../results/s05_table__{name}__delta_mean_performance.tsv'))
+          write_tsv(file = glue('../results/s06_table__{name}__delta_mean_performance.tsv'))
         
         # Table where sign of deltas are counted
         delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
                                                                                      model_index_base = model_index_base)
         
         delta_performance_count_sign_table |>
-          write_tsv(file = glue('../results/s05_table__{name}__delta_performance_count_sign.tsv'))
+          write_tsv(file = glue('../results/s06_table__{name}__delta_performance_count_sign.tsv'))
       })

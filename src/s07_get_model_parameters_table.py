@@ -19,6 +19,6 @@ model_parameters_df = (model_parameters_df
                                                                      downcast = 'integer'))
                        .sort_values(by = ['model_index']))
 
-model_parameters_df.to_csv(path_or_buf = '../results/s06_table__model_parameters.tsv',
+model_parameters_df.to_csv(path_or_buf = '../results/s07_table__model_parameters.tsv',
                            sep = '\t',
                            index = False)

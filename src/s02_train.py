@@ -28,7 +28,7 @@ v = int(args.validation_partition)
 config = s99_project_functions.load_config(config_filename)
 
 # Set parameters from config
-experiment_index = config['default']['experiment_index']
+model_index = config['default']['model_index']
 patience = config['default']['patience'] #Patience for Early Stopping
 dropout_rate = config['default']['dropout_rate'] #Dropout Rate
 epochs = config['default']['epochs'] #Number of epochs in the training
@@ -43,8 +43,8 @@ padding_side_tcr = config['default']['padding_side_tcr']
 truncating_side_tcr = config['default']['truncating_side_tcr']
 weight_peptides = config['default']['weight_peptides']
 seed = config['default']['seed']
-data_file_name = config['default']['data']
-model_name = config['default']['model']
+data_filename = config['default']['data_filename']
+model_architecture_name = config['default']['model_architecture_name']
 peptide_selection = config['default']['peptide_selection']
 peptide_normalization_divisor = config['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
@@ -58,7 +58,7 @@ keras.utils.set_random_seed(seed)
 ### Input/Output ###
 # Read in data
 data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
-                                                     data_file_name),
+                                                     data_filename),
                    usecols = ['A1',
                               'A2',
                               'A3',
@@ -192,7 +192,7 @@ b3_validation = np.stack(arrays = df_validation['b3_encoded'])
 binder_validation = np.asarray(df_validation['binder'])
 weight_validation = np.asarray(df_validation['weight'])
 
-if model_name == 'ff_CDR123':
+if model_architecture_name == 'ff_CDR123':
     # Flatten peptide array
     peptide_train = np.reshape(a = peptide_train,
                                newshape = (peptide_train.shape[0],
@@ -247,10 +247,10 @@ b2_validation = b2_validation / tcr_normalization_divisor
 b3_validation = b3_validation / tcr_normalization_divisor
 
 # Get model architecture
-model = getattr(s98_models, model_name)
+model_architecture = getattr(s98_models, model_architecture_name)
 peptide_shape = peptide_train.shape[1:]
 
-if model_name == 'CNN_CDR123_global_max':
+if model_architecture_name == 'CNN_CDR123_global_max':
     a1_shape = a1_train.shape[1:]
     a2_shape = a2_train.shape[1:]
     a3_shape = a3_train.shape[1:]
@@ -258,33 +258,33 @@ if model_name == 'CNN_CDR123_global_max':
     b2_shape = b2_train.shape[1:]
     b3_shape = b3_train.shape[1:]
 
-    model = model(dropout_rate = dropout_rate,
-                  seed = seed,
-                  peptide_shape = peptide_shape,
-                  a1_shape = a1_shape,
-                  a2_shape = a2_shape,
-                  a3_shape = a3_shape,
-                  b1_shape = b1_shape,
-                  b2_shape = b2_shape,
-                  b3_shape = b3_shape,
-                  convolution_filters_count = convolution_filters_count,
-                  hidden_units_count = hidden_units_count)
+    model_architecture = model_architecture(dropout_rate = dropout_rate,
+                                            seed = seed,
+                                            peptide_shape = peptide_shape,
+                                            a1_shape = a1_shape,
+                                            a2_shape = a2_shape,
+                                            a3_shape = a3_shape,
+                                            b1_shape = b1_shape,
+                                            b2_shape = b2_shape,
+                                            b3_shape = b3_shape,
+                                            convolution_filters_count = convolution_filters_count,
+                                            hidden_units_count = hidden_units_count)
 
-elif model_name == 'ff_CDR123':
+elif model_architecture_name == 'ff_CDR123':
     cdr_shape = a1_train.shape[1:]
 
-    model = model(dropout_rate = dropout_rate,
-                  seed = seed,
-                  peptide_shape = peptide_shape,
-                  cdr_shape = cdr_shape,
-                  hidden_units_count = hidden_units_count)
+    model_architecture = model_architecture(dropout_rate = dropout_rate,
+                                            seed = seed,
+                                            peptide_shape = peptide_shape,
+                                            cdr_shape = cdr_shape,
+                                            hidden_units_count = hidden_units_count)
 
 # Compile model
 auc01 = s99_project_functions.auc01
-model.compile(optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate),
-              loss = tf.keras.losses.BinaryCrossentropy(),
-              metrics = [auc01, 'AUC'],
-              weighted_metrics = [])
+model_architecture.compile(optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate),
+                           loss = tf.keras.losses.BinaryCrossentropy(),
+                           metrics = [auc01, 'AUC'],
+                           weighted_metrics = [])
 
 # Remove unused variables from memory
 del df_train, df_validation, df_peptides, df_tcrs, data
@@ -297,70 +297,58 @@ if not os.path.exists('../checkpoint'):
 print('Training model with test_partition = {} & validation_partition = {}'.format(t,v), end = '\n')
 
 # Train model
-history = model.fit(x = {'pep': peptide_train,
-                         'a1': a1_train,
-                         'a2': a2_train,
-                         'a3': a3_train,
-                         'b1': b1_train,
-                         'b2': b2_train,
-                         'b3': b3_train},
-                    y = binder_train,
-                    batch_size = batch_size,
-                    epochs = epochs,
-                    verbose = 2,
-                    sample_weight = weight_train,
-                    validation_data = ({'pep': peptide_validation,
-                                        'a1': a1_validation,
-                                        'a2': a2_validation,
-                                        'a3': a3_validation,
-                                        'b1': b1_validation,
-                                        'b2': b2_validation,
-                                        'b3': b3_validation},
-                                       binder_validation,
-                                       weight_validation),
-                    validation_batch_size = batch_size,
-                    shuffle = True,
-                    callbacks = [keras.callbacks.EarlyStopping(monitor = 'val_auc01',
-                                                               mode = 'max',
-                                                               patience = patience),
-                                 keras.callbacks.ModelCheckpoint(filepath = '../checkpoint/s02_e{}_t{}v{}'.format(experiment_index,t,v),
-                                                                 monitor = 'val_auc01',
-                                                                 mode = 'max',
-                                                                 save_best_only = True)])
-
-# Get loss and metrics for each epoch during training
-valid_loss = history.history['val_loss']
-train_loss = history.history['loss']
-valid_auc01 = history.history['val_auc01']
-
-# Record metrics at checkpoint
-valid_best = valid_loss[np.argmax(valid_auc01)+1]
-best_epoch = np.argmax(valid_auc01)+1
-best_auc01 = np.max(valid_auc01)
+history = model_architecture.fit(x = {'pep': peptide_train,
+                                      'a1': a1_train,
+                                      'a2': a2_train,
+                                      'a3': a3_train,
+                                      'b1': b1_train,
+                                      'b2': b2_train,
+                                      'b3': b3_train},
+                                 y = binder_train,
+                                 batch_size = batch_size,
+                                 epochs = epochs,
+                                 verbose = 2,
+                                 sample_weight = weight_train,
+                                 validation_data = ({'pep': peptide_validation,
+                                                     'a1': a1_validation,
+                                                     'a2': a2_validation,
+                                                     'a3': a3_validation,
+                                                     'b1': b1_validation,
+                                                     'b2': b2_validation,
+                                                     'b3': b3_validation},
+                                                    binder_validation,
+                                                    weight_validation),
+                                 validation_batch_size = batch_size,
+                                 shuffle = True,
+                                 callbacks = [keras.callbacks.EarlyStopping(monitor = 'val_auc01',
+                                                                            mode = 'max',
+                                                                            patience = patience),
+                                              keras.callbacks.ModelCheckpoint(filepath = '../checkpoint/s02_m{}_t{}v{}'.format(model_index,t,v),
+                                                                              monitor = 'val_auc01',
+                                                                              mode = 'max',
+                                                                              save_best_only = True)])
 
 # Create directory to save results in
 if not os.path.exists('../results'):
     os.makedirs('../results')
 
-# Record metrics at checkpoint to file
-outfile = open('../results/s02_e{}_validation_t{}v{}.tsv'.format(experiment_index,t,v), mode = 'w')
-print('t', 'v', 'valid_loss', 'best_auc_0.1', 'best_epoch', sep = '\t', file = outfile)
-print(t, v, valid_best, best_auc01, best_epoch, sep = '\t', file = outfile)
-outfile.close()
+# Get training history
+history_df = pd.DataFrame(data = history.history)
+history_df.index.name = 'epoch'
+history_df.index += 1
 
-# Prepare plotting
-sns.set()
-fig, ax = plt.subplots(figsize=(15, 10))
+# Extract training history at maximum AUC 0.1
+epoch_max_auc01 = history_df['val_auc01'].idxmax()
+history_max_auc01 = history_df.loc[[epoch_max_auc01]]
 
-#Plotting the losses
-ax.plot(train_loss, label='train')
-ax.plot(valid_loss, label='validation')
-ax.set_ylabel('Loss')
-ax.set_xlabel('Epoch')
-ax.legend()
-ax.set_title('Model t.'+str(t)+'.v.'+str(v))
 
-#Save training/validation loss plot
-plt.tight_layout()
-plt.show()
-fig.savefig('../results/s02_e{}_learning_curves_t{}v{}.png'.format(experiment_index,t,v), dpi=200)
+# Write training history to files
+history_df.to_csv(path_or_buf = '../results/s02_m{}_training_history_t{}v{}.tsv'.format(model_index,
+                                                                                        t,
+                                                                                        v),
+                  sep = '\t')
+
+history_max_auc01.to_csv(path_or_buf = '../results/s02_m{}_training_history_max_auc01_t{}v{}.tsv'.format(model_index,
+                                                                                                         t,
+                                                                                                         v),
+                         sep = '\t')

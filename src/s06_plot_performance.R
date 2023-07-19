@@ -186,7 +186,6 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                 model_index_base = c(4,
                                      1,
                                      5,
-                                     7,
                                      5,
                                      9,
                                      5,

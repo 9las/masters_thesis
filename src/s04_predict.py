@@ -23,7 +23,9 @@ config = s99_project_functions.load_config(config_filename)
 # Set parameters from config
 model_index = config['default']['model_index']
 embedder_name_tcr = config['default']['embedder_name_tcr']
+embedder_source_tcr = config['default']['embedder_source_tcr']
 embedder_name_peptide = config['default']['embedder_name_peptide']
+embedder_source_peptide = config['default']['embedder_source_peptide']
 padding_value_peptide = config['default']['padding_value_peptide']
 padding_side_peptide = config['default']['padding_side_peptide']
 truncating_side_peptide = config['default']['truncating_side_peptide']
@@ -55,39 +57,27 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'original_index'])
 
 # Get dataframe with unique encoded peptides
-if embedder_name_peptide in {'blosum50_20aa',
-                              'blosum50',
-                              'one_hot',
-                              'one_hot_20aa',
-                              'amino_to_idx',
-                              'phys_chem',
-                              'blosum62',
-                              'blosum62_20aa'}:
+if embedder_source_peptide == 'in-house':
 
     df_peptides = (s99_project_functions
                    .encode_unique_peptides(df = data,
                                            encoding_name = embedder_name_peptide))
 
 else:
-    df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_peptide_{}.pkl'
-                                                       .format(embedder_name_peptide)))
+    df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_peptide_{}_{}.pkl'
+                                                       .format(embedder_source_peptide,
+                                                               embedder_name_peptide.replace('/', '_'))))
 
 # Get dataframe with unique encoded CDRs
-if embedder_name_tcr in {'blosum50_20aa',
-                          'blosum50',
-                          'one_hot',
-                          'one_hot_20aa',
-                          'amino_to_idx',
-                          'phys_chem',
-                          'blosum62',
-                          'blosum62_20aa'}:
+if embedder_source_tcr == 'in-house':
 
     df_tcrs = (s99_project_functions
                .encode_unique_tcrs(df = data,
                                    encoding_name = embedder_name_tcr))
 else:
-    df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_tcr_{}.pkl'
-                                                   .format(embedder_name_tcr)))
+    df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_tcr_{}_{}.pkl'
+                                                   .format(embedder_source_tcr,
+                                                           embedder_name_tcr.replace('/', '_'))))
 
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions

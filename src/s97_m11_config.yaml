@@ -12,8 +12,10 @@ default:
     weight_peptides: True
     embedder_name_tcr: prottrans_t5_xl_u50
     embedder_source_tcr: bio_embeddings
+    embedder_batch_size_tcr: null
     embedder_name_peptide: blosum50_20aa
     embedder_source_peptide: in-house
+    embedder_batch_size_peptide: null
     padding_value_peptide: -5
     padding_side_peptide: right
     truncating_side_peptide: right

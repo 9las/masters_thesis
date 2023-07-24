@@ -31,4 +31,4 @@ data = (data
         .assign(peptide_encoded = lambda x: x.index.map(embedder.embed)))
 
 # Save embeddings
-data.to_pickle(path = '../data/s01_embedding_peptide_{}.pkl'.format(embedder_name_peptide))
+data.to_pickle(path = '../data/s01_embedding_peptide_bio_embeddings_{}.pkl'.format(embedder_name_peptide))

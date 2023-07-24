@@ -100,4 +100,4 @@ data = (data
         .filter(items = cdr_name_tuple))
 
 # Save embeddings
-data.to_pickle(path = '../data/s01_embedding_tcr_{}.pkl'.format(embedder_name_tcr))
+data.to_pickle(path = '../data/s01_embedding_tcr_bio_embeddings_{}.pkl'.format(embedder_name_tcr))

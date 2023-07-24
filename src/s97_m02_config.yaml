@@ -9,8 +9,10 @@ default:
     epochs: 200
     batch_size: 64
     weight_peptides: True
-    embedding_name_tcr: blosum50_20aa
-    embedding_name_peptide: blosum50_20aa
+    embedder_name_tcr: blosum50_20aa
+    embedder_source_tcr: in-house
+    embedder_name_peptide: blosum50_20aa
+    embedder_source_peptide: in-house
     padding_value_peptide: -5
     padding_side_peptide: right
     truncating_side_peptide: right

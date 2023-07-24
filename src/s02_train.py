@@ -33,8 +33,8 @@ patience = config['default']['patience'] #Patience for Early Stopping
 dropout_rate = config['default']['dropout_rate'] #Dropout Rate
 epochs = config['default']['epochs'] #Number of epochs in the training
 batch_size = config['default']['batch_size'] #Number of elements in each batch
-embedding_name_tcr = config['default']['embedding_name_tcr']
-embedding_name_peptide = config['default']['embedding_name_peptide']
+embedder_name_tcr = config['default']['embedder_name_tcr']
+embedder_name_peptide = config['default']['embedder_name_peptide']
 padding_value_peptide = config['default']['padding_value_peptide']
 padding_side_peptide = config['default']['padding_side_peptide']
 truncating_side_peptide = config['default']['truncating_side_peptide']
@@ -71,7 +71,7 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'original_index'])
 
 # Get dataframe with unique encoded peptides
-if embedding_name_peptide in {'blosum50_20aa',
+if embedder_name_peptide in {'blosum50_20aa',
                               'blosum50',
                               'one_hot',
                               'one_hot_20aa',
@@ -82,14 +82,14 @@ if embedding_name_peptide in {'blosum50_20aa',
 
     df_peptides = (s99_project_functions
                    .encode_unique_peptides(df = data,
-                                           encoding_name = embedding_name_peptide))
+                                           encoding_name = embedder_name_peptide))
 
 else:
     df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_peptide_{}.pkl'
-                                                       .format(embedding_name_peptide)))
+                                                       .format(embedder_name_peptide)))
 
 # Get dataframe with unique encoded CDRs
-if embedding_name_tcr in {'blosum50_20aa',
+if embedder_name_tcr in {'blosum50_20aa',
                           'blosum50',
                           'one_hot',
                           'one_hot_20aa',
@@ -100,10 +100,10 @@ if embedding_name_tcr in {'blosum50_20aa',
 
     df_tcrs = (s99_project_functions
                .encode_unique_tcrs(df = data,
-                                   encoding_name = embedding_name_tcr))
+                                   encoding_name = embedder_name_tcr))
 else:
     df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_tcr_{}.pkl'
-                                                   .format(embedding_name_tcr)))
+                                                   .format(embedder_name_tcr)))
 
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions

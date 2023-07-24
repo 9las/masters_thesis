@@ -9,8 +9,10 @@ default:
     epochs: 1000
     batch_size: 64
     weight_peptides: True
-    embedding_name_tcr: esm1b
-    embedding_name_peptide: esm1b
+    embedder_name_tcr: esm1b
+    embedder_source_tcr: bio_embeddings
+    embedder_name_peptide: esm1b
+    embedder_source_peptide: bio_embeddings
     padding_value_peptide: 0
     padding_side_peptide: right
     truncating_side_peptide: right

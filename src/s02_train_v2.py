@@ -11,6 +11,7 @@ import s98_models
 import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
+import datasets
 
 #Input arguments for running the model
 parser = argparse.ArgumentParser()
@@ -84,6 +85,30 @@ else:
                                                        .format(embedder_source_peptide,
                                                                embedder_name_peptide.replace('/', '_'))))
 
+# Functions
+def map_embeddings(x):
+    result_dict = dict()
+    peptide = x['peptide']
+    original_index = x['original_index']
+
+    result_dict['peptide_encoded'] = df_peptides.loc[peptide, 'peptide_encoded']
+    result_dict['weight'] = df_peptides.loc[peptide, 'weight']
+    result_dict['a1_encoded'] = df_tcrs.loc[original_index, 'a1_encoded']
+    result_dict['a2_encoded'] = df_tcrs.loc[original_index, 'a2_encoded']
+    result_dict['a3_encoded'] = df_tcrs.loc[original_index, 'a3_encoded']
+    result_dict['b1_encoded'] = df_tcrs.loc[original_index, 'b1_encoded']
+    result_dict['b2_encoded'] = df_tcrs.loc[original_index, 'b2_encoded']
+    result_dict['b3_encoded'] = df_tcrs.loc[original_index, 'b3_encoded']
+
+    return result_dict
+
+def extract_weights_from_dict(x):
+    inputs = x[0]
+    label = x[1]
+    weight = inputs.pop('weight')
+
+    return((inputs, label, weight))
+
 # Get dataframe with unique encoded CDRs
 if embedder_source_tcr == 'in-house':
 
@@ -133,88 +158,48 @@ df_tcrs /= tcr_normalization_divisor
 df_peptides['peptide_encoded'] /= peptide_normalization_divisor
 
 if model_architecture_name == 'ff_CDR123':
-# Calculate embeddings per CDR and flatten peptide embeddings
     df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
                                       .map(arg = lambda x: x.flatten()))
     df_tcrs = (df_tcrs
                .applymap(func = lambda x: np.mean(a = x,
                                                   axis = 0)))
+del data
+
+features = datasets.Features({'original_index': datasets.Value('int32'),
+                              'peptide': datasets.Value('string'),
+                              'partition': datasets.Value('int8'),
+                              'binder': datasets.Value('bool')})
+
+data = datasets.load_dataset(path = 'csv',
+                             data_files = '../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv',
+                             features = features)
 
 if peptide_selection is not None:
 # Select specific peptide to train model on
     data = (data
-            .query('peptide == @peptide_selection'))
+            .filter(lambda x: x['peptide'] == peptide_selection))
 
 # Get training data
 df_train = (data
-            .query('partition != @v & partition != @t'))
+            .filter(lambda x: (x['partition'] != t) & (x['partition'] != v))
+            .map(map_embeddings))
 
 # Get validation data
 df_validation = (data
-                 .query('partition == @v'))
+                 .filter(lambda x: x['partition'] == v)
+                 .map(map_embeddings))
 
-del data
-
-# Join unique encoded sequences onto the data set
-df_train = (df_train
-            .merge(right = df_peptides,
-                   how = 'left',
-                   on = 'peptide')
-            .merge(right = df_tcrs,
-                   how = 'left',
-                   on = 'original_index')
-            .filter(items = ['peptide_encoded',
-                             'a1_encoded',
-                             'a2_encoded',
-                             'a3_encoded',
-                             'b1_encoded',
-                             'b2_encoded',
-                             'b3_encoded',
-                             'weight',
-                             'binder',
-                             'partition']))
-
-peptide_train = np.stack(arrays = df_train.pop('peptide_encoded'))
-a1_train = np.stack(arrays = df_train.pop('a1_encoded'))
-a2_train = np.stack(arrays = df_train.pop('a2_encoded'))
-a3_train = np.stack(arrays = df_train.pop('a3_encoded'))
-b1_train = np.stack(arrays = df_train.pop('b1_encoded'))
-b2_train = np.stack(arrays = df_train.pop('b2_encoded'))
-b3_train = np.stack(arrays = df_train.pop('b3_encoded'))
-binder_train = np.asarray(df_train.pop('binder'))
-weight_train = np.asarray(df_train.pop('weight'))
-
-del df_train
-
-df_validation = (df_validation
-                 .merge(right = df_peptides,
-                        how = 'left',
-                        on = 'peptide')
-                 .merge(right = df_tcrs,
-                        how = 'left',
-                        on = 'original_index')
-                 .filter(items = ['peptide_encoded',
-                                  'a1_encoded',
-                                  'a2_encoded',
-                                  'a3_encoded',
-                                  'b1_encoded',
-                                  'b2_encoded',
-                                  'b3_encoded',
-                                  'weight',
-                                  'binder',
-                                  'partition']))
-
-peptide_validation = np.stack(arrays = df_validation.pop('peptide_encoded'))
-a1_validation = np.stack(arrays = df_validation.pop('a1_encoded'))
-a2_validation = np.stack(arrays = df_validation.pop('a2_encoded'))
-a3_validation = np.stack(arrays = df_validation.pop('a3_encoded'))
-b1_validation = np.stack(arrays = df_validation.pop('b1_encoded'))
-b2_validation = np.stack(arrays = df_validation.pop('b2_encoded'))
-b3_validation = np.stack(arrays = df_validation.pop('b3_encoded'))
-binder_validation = np.asarray(df_validation.pop('binder'))
-weight_validation = np.asarray(df_validation.pop('weight'))
-
-del df_validation
+df_train = df_train['train'].to_tf_dataset(columns = ['peptide',
+                                                      'a1_encoded',
+                                                      'a2_encoded',
+                                                      'a3_encoded',
+                                                      'b1_encoded',
+                                                      'b2_encoded',
+                                                      'b3_encoded',
+                                                      'weight'],
+                                           label_cols = 'binder',
+                                           batch_size = batch_size,
+                                           shuffle = True)
 
 # Get model architecture
 model_architecture = getattr(s98_models, model_architecture_name)

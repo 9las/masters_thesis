@@ -204,6 +204,8 @@ df_validation = (df_validation
                                   'binder',
                                   'partition']))
 
+del df_peptides, df_tcrs
+
 peptide_validation = np.stack(arrays = df_validation.pop('peptide_encoded'))
 a1_validation = np.stack(arrays = df_validation.pop('a1_encoded'))
 a2_validation = np.stack(arrays = df_validation.pop('a2_encoded'))
@@ -255,9 +257,6 @@ model_architecture.compile(optimizer = tf.keras.optimizers.Adam(learning_rate = 
                            loss = tf.keras.losses.BinaryCrossentropy(),
                            metrics = [auc01, 'AUC'],
                            weighted_metrics = [])
-
-# Remove unused variables from memory
-del df_train, df_validation, df_peptides, df_tcrs, data
 
 #Creates the directory to save the model in
 if not os.path.exists('../checkpoint'):

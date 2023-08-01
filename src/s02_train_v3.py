@@ -53,9 +53,17 @@ tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
 learning_rate = config['default']['learning_rate']
 convolution_filters_count = config['default']['convolution_filters_count']
 hidden_units_count = config['default']['hidden_units_count']
+mixed_precision = config['default']['mixed_precision']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
+
+# Set up keras to use mixed precision if on GPU
+if tf.config.list_physical_devices('GPU') and mixed_precision:
+    keras.mixed_precision.set_global_policy('mixed_float16')
+    mixed_precision = True
+else:
+    mixed_precision = False
 
 ### Input/Output ###
 # Read in data
@@ -174,15 +182,15 @@ df_train = (df_train
                              'binder']))
 
 with tf.device("CPU"):
-    tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train.pop('peptide_encoded')),
-                                                              'a1': np.stack(arrays = df_train.pop('a1_encoded')),
-                                                              'a2': np.stack(arrays = df_train.pop('a2_encoded')),
-                                                              'a3': np.stack(arrays = df_train.pop('a3_encoded')),
-                                                              'b1': np.stack(arrays = df_train.pop('b1_encoded')),
-                                                              'b2': np.stack(arrays = df_train.pop('b2_encoded')),
-                                                              'b3': np.stack(arrays = df_train.pop('b3_encoded'))},
-                                                              np.asarray(df_train.pop('binder')),
-                                                              np.asarray(df_train.pop('weight'))))
+    tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train['peptide_encoded']),
+                                                              'a1': np.stack(arrays = df_train['a1_encoded']),
+                                                              'a2': np.stack(arrays = df_train['a2_encoded']),
+                                                              'a3': np.stack(arrays = df_train['a3_encoded']),
+                                                              'b1': np.stack(arrays = df_train['b1_encoded']),
+                                                              'b2': np.stack(arrays = df_train['b2_encoded']),
+                                                              'b3': np.stack(arrays = df_train['b3_encoded'])},
+                                                              np.asarray(df_train['binder']),
+                                                              np.asarray(df_train['weight'])))
 
 del df_train
 
@@ -211,15 +219,15 @@ df_validation = (df_validation
 del df_peptides, df_tcrs
 
 with tf.device("CPU"):
-    tf_validation = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_validation.pop('peptide_encoded')),
-                                                                   'a1': np.stack(arrays = df_validation.pop('a1_encoded')),
-                                                                   'a2': np.stack(arrays = df_validation.pop('a2_encoded')),
-                                                                   'a3': np.stack(arrays = df_validation.pop('a3_encoded')),
-                                                                   'b1': np.stack(arrays = df_validation.pop('b1_encoded')),
-                                                                   'b2': np.stack(arrays = df_validation.pop('b2_encoded')),
-                                                                   'b3': np.stack(arrays = df_validation.pop('b3_encoded'))},
-                                                                  np.asarray(df_validation.pop('binder')),
-                                                                  np.asarray(df_validation.pop('weight'))))
+    tf_validation = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_validation['peptide_encoded']),
+                                                                   'a1': np.stack(arrays = df_validation['a1_encoded']),
+                                                                   'a2': np.stack(arrays = df_validation['a2_encoded']),
+                                                                   'a3': np.stack(arrays = df_validation['a3_encoded']),
+                                                                   'b1': np.stack(arrays = df_validation['b1_encoded']),
+                                                                   'b2': np.stack(arrays = df_validation['b2_encoded']),
+                                                                   'b3': np.stack(arrays = df_validation['b3_encoded'])},
+                                                                  np.asarray(df_validation['binder']),
+                                                                  np.asarray(df_validation['weight'])))
 
 del df_validation
 
@@ -249,7 +257,8 @@ if model_architecture_name == 'CNN_CDR123_global_max':
                                             b2_shape = b2_shape,
                                             b3_shape = b3_shape,
                                             convolution_filters_count = convolution_filters_count,
-                                            hidden_units_count = hidden_units_count)
+                                            hidden_units_count = hidden_units_count,
+                                            mixed_precision = mixed_precision)
 
 elif model_architecture_name == 'ff_CDR123':
     cdr_shape = a1_train.shape[1:]
@@ -258,7 +267,8 @@ elif model_architecture_name == 'ff_CDR123':
                                             seed = seed,
                                             peptide_shape = peptide_shape,
                                             cdr_shape = cdr_shape,
-                                            hidden_units_count = hidden_units_count)
+                                            hidden_units_count = hidden_units_count,
+                                            mixed_precision = mixed_precision)
 
 # Compile model
 auc01 = s99_project_functions.auc01

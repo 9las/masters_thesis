@@ -182,13 +182,13 @@ df_train = (df_train
                              'binder']))
 
 with tf.device("CPU"):
-    tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train['peptide_encoded'], dtype = np.half),
-                                                              'a1': np.stack(arrays = df_train['a1_encoded'], dtype = np.half),
-                                                              'a2': np.stack(arrays = df_train['a2_encoded'], dtype = np.half),
-                                                              'a3': np.stack(arrays = df_train['a3_encoded'], dtype = np.half),
-                                                              'b1': np.stack(arrays = df_train['b1_encoded'], dtype = np.half),
-                                                              'b2': np.stack(arrays = df_train['b2_encoded'], dtype = np.half),
-                                                              'b3': np.stack(arrays = df_train['b3_encoded'], dtype = np.half)},
+    tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train['peptide_encoded']),
+                                                              'a1': np.stack(arrays = df_train['a1_encoded']),
+                                                              'a2': np.stack(arrays = df_train['a2_encoded']),
+                                                              'a3': np.stack(arrays = df_train['a3_encoded']),
+                                                              'b1': np.stack(arrays = df_train['b1_encoded']),
+                                                              'b2': np.stack(arrays = df_train['b2_encoded']),
+                                                              'b3': np.stack(arrays = df_train['b3_encoded'])},
                                                               np.asarray(df_train['binder']),
                                                               np.asarray(df_train['weight'])))
 
@@ -219,13 +219,13 @@ df_validation = (df_validation
 del df_peptides, df_tcrs
 
 with tf.device("CPU"):
-    tf_validation = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_validation['peptide_encoded'], dtype = np.half),
-                                                                   'a1': np.stack(arrays = df_validation['a1_encoded'], dtype = np.half),
-                                                                   'a2': np.stack(arrays = df_validation['a2_encoded'], dtype = np.half),
-                                                                   'a3': np.stack(arrays = df_validation['a3_encoded'], dtype = np.half),
-                                                                   'b1': np.stack(arrays = df_validation['b1_encoded'], dtype = np.half),
-                                                                   'b2': np.stack(arrays = df_validation['b2_encoded'], dtype = np.half),
-                                                                   'b3': np.stack(arrays = df_validation['b3_encoded'], dtype = np.half)},
+    tf_validation = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_validation['peptide_encoded']),
+                                                                   'a1': np.stack(arrays = df_validation['a1_encoded']),
+                                                                   'a2': np.stack(arrays = df_validation['a2_encoded']),
+                                                                   'a3': np.stack(arrays = df_validation['a3_encoded']),
+                                                                   'b1': np.stack(arrays = df_validation['b1_encoded']),
+                                                                   'b2': np.stack(arrays = df_validation['b2_encoded']),
+                                                                   'b3': np.stack(arrays = df_validation['b3_encoded'])},
                                                                   np.asarray(df_validation['binder']),
                                                                   np.asarray(df_validation['weight'])))
 

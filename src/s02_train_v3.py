@@ -173,27 +173,23 @@ df_train = (df_train
                              'weight',
                              'binder']))
 
-tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train.pop('peptide_encoded')),
-                                                          'a1': np.stack(arrays = df_train.pop('a1_encoded')),
-                                                          'a2': np.stack(arrays = df_train.pop('a2_encoded')),
-                                                          'a3': np.stack(arrays = df_train.pop('a3_encoded')),
-                                                          'b1': np.stack(arrays = df_train.pop('b1_encoded')),
-                                                          'b2': np.stack(arrays = df_train.pop('b2_encoded')),
-                                                          'b3': np.stack(arrays = df_train.pop('b3_encoded'))},
-                                                          np.asarray(df_train.pop('binder')),
-                                                          np.asarray(df_train.pop('weight'))))
-
-peptide_train = np.stack(arrays = df_train.pop('peptide_encoded'))
-a1_train = np.stack(arrays = df_train.pop('a1_encoded'))
-a2_train = np.stack(arrays = df_train.pop('a2_encoded'))
-a3_train = np.stack(arrays = df_train.pop('a3_encoded'))
-b1_train = np.stack(arrays = df_train.pop('b1_encoded'))
-b2_train = np.stack(arrays = df_train.pop('b2_encoded'))
-b3_train = np.stack(arrays = df_train.pop('b3_encoded'))
-binder_train = np.asarray(df_train.pop('binder'))
-weight_train = np.asarray(df_train.pop('weight'))
+with tf.device("CPU"):
+    tf_train = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_train.pop('peptide_encoded')),
+                                                              'a1': np.stack(arrays = df_train.pop('a1_encoded')),
+                                                              'a2': np.stack(arrays = df_train.pop('a2_encoded')),
+                                                              'a3': np.stack(arrays = df_train.pop('a3_encoded')),
+                                                              'b1': np.stack(arrays = df_train.pop('b1_encoded')),
+                                                              'b2': np.stack(arrays = df_train.pop('b2_encoded')),
+                                                              'b3': np.stack(arrays = df_train.pop('b3_encoded'))},
+                                                              np.asarray(df_train.pop('binder')),
+                                                              np.asarray(df_train.pop('weight'))))
 
 del df_train
+
+tf_train = (tf_train
+            .shuffle(buffer_size = len(tf_train))
+            .batch(batch_size = batch_size)
+            .prefetch(buffer_size = tf.data.AUTOTUNE))
 
 df_validation = (df_validation
                  .merge(right = df_peptides,
@@ -214,29 +210,34 @@ df_validation = (df_validation
 
 del df_peptides, df_tcrs
 
-peptide_validation = np.stack(arrays = df_validation.pop('peptide_encoded'))
-a1_validation = np.stack(arrays = df_validation.pop('a1_encoded'))
-a2_validation = np.stack(arrays = df_validation.pop('a2_encoded'))
-a3_validation = np.stack(arrays = df_validation.pop('a3_encoded'))
-b1_validation = np.stack(arrays = df_validation.pop('b1_encoded'))
-b2_validation = np.stack(arrays = df_validation.pop('b2_encoded'))
-b3_validation = np.stack(arrays = df_validation.pop('b3_encoded'))
-binder_validation = np.asarray(df_validation.pop('binder'))
-weight_validation = np.asarray(df_validation.pop('weight'))
+with tf.device("CPU"):
+    tf_validation = tf.data.Dataset.from_tensor_slices(tensors = ({'pep': np.stack(arrays = df_validation.pop('peptide_encoded')),
+                                                                   'a1': np.stack(arrays = df_validation.pop('a1_encoded')),
+                                                                   'a2': np.stack(arrays = df_validation.pop('a2_encoded')),
+                                                                   'a3': np.stack(arrays = df_validation.pop('a3_encoded')),
+                                                                   'b1': np.stack(arrays = df_validation.pop('b1_encoded')),
+                                                                   'b2': np.stack(arrays = df_validation.pop('b2_encoded')),
+                                                                   'b3': np.stack(arrays = df_validation.pop('b3_encoded'))},
+                                                                  np.asarray(df_validation.pop('binder')),
+                                                                  np.asarray(df_validation.pop('weight'))))
 
 del df_validation
 
+tf_validation = (tf_validation
+                 .batch(batch_size = batch_size)
+                 .prefetch(buffer_size = tf.data.AUTOTUNE))
+
 # Get model architecture
 model_architecture = getattr(s98_models, model_architecture_name)
-peptide_shape = peptide_train.shape[1:]
+peptide_shape = tuple(tf_train.element_spec[0]['pep'].shape[1:])
 
 if model_architecture_name == 'CNN_CDR123_global_max':
-    a1_shape = a1_train.shape[1:]
-    a2_shape = a2_train.shape[1:]
-    a3_shape = a3_train.shape[1:]
-    b1_shape = b1_train.shape[1:]
-    b2_shape = b2_train.shape[1:]
-    b3_shape = b3_train.shape[1:]
+    a1_shape = tuple(tf_train.element_spec[0]['a1'].shape[1:])
+    a2_shape = tuple(tf_train.element_spec[0]['a2'].shape[1:])
+    a3_shape = tuple(tf_train.element_spec[0]['a3'].shape[1:])
+    b1_shape = tuple(tf_train.element_spec[0]['b1'].shape[1:])
+    b2_shape = tuple(tf_train.element_spec[0]['b2'].shape[1:])
+    b3_shape = tuple(tf_train.element_spec[0]['b3'].shape[1:])
 
     model_architecture = model_architecture(dropout_rate = dropout_rate,
                                             seed = seed,
@@ -274,29 +275,10 @@ if not os.path.exists('../checkpoint'):
 print('Training model with test_partition = {} & validation_partition = {}'.format(t,v), end = '\n')
 
 # Train model
-history = model_architecture.fit(x = {'pep': peptide_train,
-                                      'a1': a1_train,
-                                      'a2': a2_train,
-                                      'a3': a3_train,
-                                      'b1': b1_train,
-                                      'b2': b2_train,
-                                      'b3': b3_train},
-                                 y = binder_train,
-                                 batch_size = batch_size,
+history = model_architecture.fit(x = tf_train,
                                  epochs = epochs,
                                  verbose = 2,
-                                 sample_weight = weight_train,
-                                 validation_data = ({'pep': peptide_validation,
-                                                     'a1': a1_validation,
-                                                     'a2': a2_validation,
-                                                     'a3': a3_validation,
-                                                     'b1': b1_validation,
-                                                     'b2': b2_validation,
-                                                     'b3': b3_validation},
-                                                    binder_validation,
-                                                    weight_validation),
-                                 validation_batch_size = batch_size,
-                                 shuffle = True,
+                                 validation_data = tf_validation,
                                  callbacks = [keras.callbacks.EarlyStopping(monitor = 'val_auc01',
                                                                             mode = 'max',
                                                                             patience = patience),

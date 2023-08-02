@@ -27,3 +27,4 @@ default:
     learning_rate: 0.001
     convolution_filters_count: 16
     hidden_units_count: 64
+    mixed_precision: False

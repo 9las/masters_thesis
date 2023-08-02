@@ -10,8 +10,12 @@ default:
     epochs: 2000
     batch_size: 64
     weight_peptides: True
-    embedding_name_tcr: esm1b
-    embedding_name_peptide: blosum50_20aa
+    embedder_name_tcr: esm1b
+    embedder_source_tcr: bio_embeddings
+    embedder_batch_size_tcr: null
+    embedder_name_peptide: blosum50_20aa
+    embedder_source_peptide: in-house
+    embedder_batch_size_peptide: null
     padding_value_peptide: -5
     padding_side_peptide: right
     truncating_side_peptide: right
@@ -24,3 +28,4 @@ default:
     learning_rate: 0.001
     convolution_filters_count: null
     hidden_units_count: 64
+    mixed_precision: False

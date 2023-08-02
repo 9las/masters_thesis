@@ -15,7 +15,8 @@ def CNN_CDR123_global_max(dropout_rate,
                           b2_shape,
                           b3_shape,
                           convolution_filters_count,
-                          hidden_units_count):
+                          hidden_units_count,
+                          mixed_precision):
 
     # Activation
     conv_activation = 'relu'
@@ -132,7 +133,12 @@ def CNN_CDR123_global_max(dropout_rate,
     dense = layers.Dense(units = hidden_units_count, activation = dense_activation)(cat_dropout)
 
     # Output layer
-    out = layers.Dense(units = 1, activation = 'sigmoid')(dense)
+    out = layers.Dense(units = 1)(dense)
+
+    if mixed_precision:
+        out = layers.Activation(activation = "sigmoid", dtype='float32')(out)
+    else:
+        out = layers.Activation(activation = "sigmoid")(out)
 
     # Prepare model object
     model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],
@@ -144,7 +150,8 @@ def ff_CDR123(dropout_rate,
               seed,
               peptide_shape,
               cdr_shape,
-              hidden_units_count):
+              hidden_units_count,
+              mixed_precision):
 
     # Activation
     dense_activation = 'sigmoid'
@@ -168,7 +175,12 @@ def ff_CDR123(dropout_rate,
     dense = layers.Dense(units = hidden_units_count, activation = dense_activation)(cat_dropout)
 
     # Output layer
-    out = layers.Dense(units = 1, activation = 'sigmoid')(dense)
+    out = layers.Dense(units = 1)(dense)
+
+    if mixed_precision:
+        out = layers.Activation(activation = "sigmoid", dtype='float32')(out)
+    else:
+        out = layers.Activation(activation = "sigmoid")(out)
 
     # Prepare model object
     model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],

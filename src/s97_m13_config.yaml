@@ -1,4 +1,4 @@
-# ESM1b
+# ESM2 - 33 hidden layers
 default:
     model_index: '13'
     seed: 15

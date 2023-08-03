@@ -95,17 +95,17 @@ df_peptides = (df_peptides
                .drop(labels = 'count',
                      axis = 1))
 
-# Join unique encoded sequences onto the data set
-data = (data
-        .merge(right = df_peptides,
-               how = 'left',
-               on = 'peptide')
-        .merge(right = df_tcrs,
-               how = 'left',
-               on = 'original_index'))
+# Normalise embeddings
+df_tcrs /= tcr_normalization_divisor
+df_peptides['peptide_encoded'] /= peptide_normalization_divisor
 
-# Remove unused variables from memory
-del df_peptides, df_tcrs
+if model_architecture_name == 'ff_CDR123':
+# Calculate embeddings per CDR and flatten peptide embeddings
+    df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
+                                      .map(arg = lambda x: x.flatten()))
+    df_tcrs = (df_tcrs
+               .applymap(func = lambda x: np.mean(a = x,
+                                                  axis = 0)))
 
 # Do the prediction
 partitions_count = 5
@@ -113,48 +113,39 @@ for t in range(partitions_count):
 
     # Get test data
     test_partition_mask = data['partition'] == t
-    df_test = data[test_partition_mask]
+    df_test = (data[test_partition_mask]
+               .filter(items = ['peptide',
+                                'original_index']))
 
-    # Get model input
-    peptide_test = np.stack(arrays = df_test['peptide_encoded'])
-    a1_test = np.stack(arrays = df_test['a1_encoded'])
-    a2_test = np.stack(arrays = df_test['a2_encoded'])
-    a3_test = np.stack(arrays = df_test['a3_encoded'])
-    b1_test = np.stack(arrays = df_test['b1_encoded'])
-    b2_test = np.stack(arrays = df_test['b2_encoded'])
-    b3_test = np.stack(arrays = df_test['b3_encoded'])
+    # Join unique encoded sequences onto the data set
+    df_test = (df_test
+               .merge(right = df_peptides,
+                      how = 'left',
+                      on = 'peptide')
+               .merge(right = df_tcrs,
+                      how = 'left',
+                      on = 'original_index')
+               .drop(labels = ['peptide',
+                               'original_index'],
+                     axis = 'columns'))
 
-    if model_architecture_name == 'ff_CDR123':
-        # Flatten peptide array
-        peptide_test = np.reshape(a = peptide_test,
-                                  newshape = (peptide_test.shape[0],
-                                              -1))
+    # Make test data into a dict of numpy arrays
+    df_test = dict(df_test)
 
-        # Reduce embeddings of CDRs to be per CDR instead of per amino acid
-        a1_test = np.mean(a = a1_test,
-                          axis = 1)
-        a2_test = np.mean(a = a2_test,
-                          axis = 1)
-        a3_test = np.mean(a = a3_test,
-                          axis = 1)
-        b1_test = np.mean(a = b1_test,
-                          axis = 1)
-        b2_test = np.mean(a = b2_test,
-                          axis = 1)
-        b3_test = np.mean(a = b3_test,
-                          axis = 1)
+    for key, value in df_test.items():
+        df_test[key] = np.stack(arrays = value)
 
-    # Normalise embeddings
-    peptide_test = peptide_test / peptide_normalization_divisor
-    a1_test = a1_test / tcr_normalization_divisor
-    a2_test = a2_test / tcr_normalization_divisor
-    a3_test = a3_test / tcr_normalization_divisor
-    b1_test = b1_test / tcr_normalization_divisor
-    b2_test = b2_test / tcr_normalization_divisor
-    b3_test = b3_test / tcr_normalization_divisor
+    # Rename keys
+    key_map = (('peptide_encoded', 'pep'),
+               ('a1_encoded', 'a1'),
+               ('a2_encoded', 'a2'),
+               ('a3_encoded', 'a3'),
+               ('b1_encoded', 'b1'),
+               ('b2_encoded', 'b2'),
+               ('b3_encoded', 'b3'))
 
-    # Remove unused variables from memory
-    del df_test
+    for old_key, new_key in key_map:
+        df_test[new_key] = df_test.pop(old_key)
 
     # Initialize
     avg_prediction = 0
@@ -167,13 +158,7 @@ for t in range(partitions_count):
                                             custom_objects = {'auc01': s99_project_functions.auc01})
 
             # Do prediction by one model
-            avg_prediction += model.predict(x = {'pep': peptide_test,
-                                                 'a1': a1_test,
-                                                 'a2': a2_test,
-                                                 'a3': a3_test,
-                                                 'b1': b1_test,
-                                                 'b2': b2_test,
-                                                 'b3': b3_test})
+            avg_prediction += model.predict(x = df_test)
 
             # Clear the session for the next model
             tf.keras.backend.clear_session()
@@ -181,20 +166,6 @@ for t in range(partitions_count):
     # Average the predictions between all models in the inner loop
     avg_prediction = avg_prediction / 4
     data.loc[test_partition_mask, 'prediction'] = avg_prediction
-
-# Select columns for output
-data = (data.
-        filter(items = ['A1',
-                        'A2',
-                        'A3',
-                        'B1',
-                        'B2',
-                        'B3',
-                        'peptide',
-                        'binder',
-                        'partition',
-                        'original_index',
-                        'prediction']))
 
 # Save predictions
 data.to_csv(path_or_buf = '../data/s04_m{}_predictions.tsv'.format(model_index),

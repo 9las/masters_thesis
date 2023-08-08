@@ -96,7 +96,7 @@ for i in range(len(embedder_index_peptide_tuple)):
     embedder_name_peptide = config_peptide['default']['embedder_name_peptide']
     embedder_source_peptide = config_peptide['default']['embedder_source_peptide']
 
-    if embedder_source_tcr == 'in-house':
+    if embedder_source_peptide == 'in-house':
         embedding = (s99_project_functions
                      .encode_unique_peptides(df = data,
                                              encoding_name = embedder_name_peptide))
@@ -107,7 +107,7 @@ for i in range(len(embedder_index_peptide_tuple)):
     embedding_max = embedding['peptide_encoded'].apply(func = lambda x: np.max(x)).max()
     bin_edges = np.linspace(start = embedding_min,
                             stop = embedding_max,
-                            num = tcr_bin_count + 1)
+                            num = peptide_bin_count + 1)
 
     embedding = (embedding
                  .assign(peptide_encoded = lambda x: (x['peptide_encoded']

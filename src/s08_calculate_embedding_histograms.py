@@ -90,7 +90,7 @@ for i in range(len(embedder_index_tcr_tuple)):
 # Calculate histograms for peptides
 for i in range(len(embedder_index_peptide_tuple)):
     embedder_index_peptide = embedder_index_peptide_tuple[i]
-    embedder_index_peptide_padded = str(embedder_index_tcr).zfill(2)
+    embedder_index_peptide_padded = str(embedder_index_peptide).zfill(2)
     peptide_bin_count = peptide_bin_count_tuple[i]
     config_peptide = s99_project_functions.load_config('s97_ep{}_config.yaml'.format(embedder_index_peptide_padded))
     embedder_name_peptide = config_peptide['default']['embedder_name_peptide']

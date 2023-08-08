@@ -35,14 +35,14 @@ embedder_index_tcr_tuple = tuple(range(1,
                                        embedder_index_tcr_max + 1))
 embedder_index_peptide_tuple = tuple(range(1,
                                            embedder_index_peptide_max + 1))
-tcr_bin_count_tuple = (20, 30, 30, 30, 30)
-peptide_bin_count_tuple = (20, 30)
+tcr_bin_step_size_tuple = (1, 0.1, 0.1, 0.1, 0.1)
+peptide_bin_step_size_tuple = (1, 0.1)
 
 # Calculate histograms for CDRs
 for i in range(len(embedder_index_tcr_tuple)):
     embedder_index_tcr = embedder_index_tcr_tuple[i]
     embedder_index_tcr_padded = str(embedder_index_tcr).zfill(2)
-    tcr_bin_count = tcr_bin_count_tuple[i]
+    tcr_bin_step_size = tcr_bin_step_size_tuple[i]
     config_tcr = s99_project_functions.load_config('s97_et{}_config.yaml'.format(embedder_index_tcr_padded))
     embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
     embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
@@ -56,9 +56,9 @@ for i in range(len(embedder_index_tcr_tuple)):
 
     embedding_min = embedding.applymap(func = lambda x: np.min(x)).min(axis = None)
     embedding_max = embedding.applymap(func = lambda x: np.max(x)).max(axis = None)
-    bin_edges = np.linspace(start = embedding_min,
-                            stop = embedding_max,
-                            num = tcr_bin_count + 1)
+    bin_edges = np.arange(start = embedding_min,
+                          stop = embedding_max + tcr_bin_step_size,
+                          step = tcr_bin_step_size)
 
 
     embedding = (embedding
@@ -91,7 +91,7 @@ for i in range(len(embedder_index_tcr_tuple)):
 for i in range(len(embedder_index_peptide_tuple)):
     embedder_index_peptide = embedder_index_peptide_tuple[i]
     embedder_index_peptide_padded = str(embedder_index_peptide).zfill(2)
-    peptide_bin_count = peptide_bin_count_tuple[i]
+    peptide_bin_step_size = peptide_bin_step_size_tuple[i]
     config_peptide = s99_project_functions.load_config('s97_ep{}_config.yaml'.format(embedder_index_peptide_padded))
     embedder_name_peptide = config_peptide['default']['embedder_name_peptide']
     embedder_source_peptide = config_peptide['default']['embedder_source_peptide']
@@ -105,9 +105,9 @@ for i in range(len(embedder_index_peptide_tuple)):
 
     embedding_min = embedding['peptide_encoded'].apply(func = lambda x: np.min(x)).min()
     embedding_max = embedding['peptide_encoded'].apply(func = lambda x: np.max(x)).max()
-    bin_edges = np.linspace(start = embedding_min,
-                            stop = embedding_max,
-                            num = peptide_bin_count + 1)
+    bin_edges = np.arange(start = embedding_min,
+                          stop = embedding_max + peptide_bin_step_size,
+                          step = peptide_bin_step_size)
 
     embedding = (embedding
                  .assign(peptide_encoded = lambda x: (x['peptide_encoded']

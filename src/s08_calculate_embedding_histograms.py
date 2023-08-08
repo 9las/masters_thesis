@@ -134,4 +134,5 @@ histogram_df = (histogram_df
                                               .transform(func = lambda y: y / y.sum()))))
 
 histogram_df.to_csv(path_or_buf = '../results/s08_embedding_histograms.tsv',
-                    sep = '\t')
+                    sep = '\t',
+                    index_label = False)

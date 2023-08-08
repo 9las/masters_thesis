@@ -1,24 +1,28 @@
 #!/usr/bin/env python
-
 import numpy as np
 import pandas as pd
 import s99_project_functions_bio_embeddings
 import argparse
+import os
 
 # Input arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config")
 args = parser.parse_args()
-config_filename = args.config
+config_filename_tcr = args.config
 
-# Load config
-config = s99_project_functions_bio_embeddings.load_config(config_filename)
+# Load configs
+config_tcr = s99_project_functions_bio_embeddings.load_config(config_filename_tcr)
+config_main = s99_project_functions_bio_embeddings.load_config('s97_main_config.yaml')
 
 # Set parameters from config
-embedder_name_tcr = config['default']['embedder_name_tcr']
+embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
+embedder_index_tcr = config_tcr['default']['embedder_index_tcr']
+data_filename = config_main['default']['data_filename']
 
 # Read data
-data = pd.read_csv(filepath_or_buffer = '../data/raw/nettcr_train_swapped_peptide_ls_3_26_peptides_full_tcr_final.csv',
+data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
+                                                     data_filename),
                    index_col = 'original_index',
                    dtype = {'A1_start': np.ushort,
                             'A1_end': np.ushort,
@@ -100,4 +104,4 @@ data = (data
         .filter(items = cdr_name_tuple))
 
 # Save embeddings
-data.to_pickle(path = '../data/s01_embedding_tcr_bio_embeddings_{}.pkl'.format(embedder_name_tcr))
+data.to_pickle(path = '../data/s01_et{}_embedding.pkl'.format(embedder_index_tcr))

@@ -22,3 +22,5 @@ default:
     convolution_filters_count: 48
     hidden_units_count: 192
     mixed_precision: False
+    pep_conv_activation: relu
+    cdr_conv_activation: relu

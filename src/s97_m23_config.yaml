@@ -1,6 +1,6 @@
 # ESM1b
 # Use sigmoid activation function for CDRs in convolution
-# Normalisation divisor of 20 for TCR
+# Normalisation divisor of 40 for TCR
 # Twice the amount of convolution filters and hidden units
 default:
     model_index: '23'

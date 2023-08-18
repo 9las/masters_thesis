@@ -1,25 +1,23 @@
-# Protrans T5-XL-U50
-# Use sigmoid activation function for CDRs in convolution
-# Normalisation divisor of 10 for TCR
+# This config uses the original paramters from Mathias Jensen
 default:
     model_index: '27'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6
-    epochs: 1500
+    epochs: 1000
     batch_size: 64
     weight_peptides: True
-    embedder_index_tcr: '03'
+    embedder_index_tcr: '01'
     embedder_index_peptide: '01'
     padding_value_peptide: -5
     padding_side_peptide: right
     truncating_side_peptide: right
-    padding_value_tcr: 0
+    padding_value_tcr: -5
     padding_side_tcr: right
     truncating_side_tcr: right
     peptide_selection: null
     peptide_normalization_divisor: 5
-    tcr_normalization_divisor: 10
+    tcr_normalization_divisor: 1
     learning_rate: 0.001
     convolution_filters_count: 16
     hidden_units_count: 64

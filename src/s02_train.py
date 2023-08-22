@@ -20,40 +20,55 @@ parser.add_argument('-t', '--test_partition')
 #Validation partition for early stopping
 parser.add_argument('-v', '--validation_partition')
 args = parser.parse_args()
-config_filename = args.config
+config_filename_model = args.config
 t = int(args.test_partition)
 v = int(args.validation_partition)
 
-# Load config
-config = s99_project_functions.load_config(config_filename)
+# Load configs
+config_main = s99_project_functions.load_config('s97_main_config.yaml')
+config_model = s99_project_functions.load_config(config_filename_model)
+
+embedder_index_tcr = config_model['default']['embedder_index_tcr']
+embedder_index_peptide = config_model['default']['embedder_index_peptide']
+
+config_filename_tcr = 's97_et{}_config.yaml'.format(embedder_index_tcr)
+config_filename_peptide = 's97_ep{}_config.yaml'.format(embedder_index_peptide)
+
+config_tcr = s99_project_functions.load_config(config_filename_tcr)
+config_peptide = s99_project_functions.load_config(config_filename_peptide)
 
 # Set parameters from config
-model_index = config['default']['model_index']
-patience = config['default']['patience'] #Patience for Early Stopping
-dropout_rate = config['default']['dropout_rate'] #Dropout Rate
-epochs = config['default']['epochs'] #Number of epochs in the training
-batch_size = config['default']['batch_size'] #Number of elements in each batch
-embedder_name_tcr = config['default']['embedder_name_tcr']
-embedder_source_tcr = config['default']['embedder_source_tcr']
-embedder_name_peptide = config['default']['embedder_name_peptide']
-embedder_source_peptide = config['default']['embedder_source_peptide']
-padding_value_peptide = config['default']['padding_value_peptide']
-padding_side_peptide = config['default']['padding_side_peptide']
-truncating_side_peptide = config['default']['truncating_side_peptide']
-padding_value_tcr = config['default']['padding_value_tcr']
-padding_side_tcr = config['default']['padding_side_tcr']
-truncating_side_tcr = config['default']['truncating_side_tcr']
-weight_peptides = config['default']['weight_peptides']
-seed = config['default']['seed']
-data_filename = config['default']['data_filename']
-model_architecture_name = config['default']['model_architecture_name']
-peptide_selection = config['default']['peptide_selection']
-peptide_normalization_divisor = config['default']['peptide_normalization_divisor']
-tcr_normalization_divisor = config['default']['tcr_normalization_divisor']
-learning_rate = config['default']['learning_rate']
-convolution_filters_count = config['default']['convolution_filters_count']
-hidden_units_count = config['default']['hidden_units_count']
-mixed_precision = config['default']['mixed_precision']
+data_filename = config_main['default']['data_filename']
+seed = config_main['default']['seed']
+
+model_index = config_model['default']['model_index']
+patience = config_model['default']['patience'] #Patience for Early Stopping
+dropout_rate = config_model['default']['dropout_rate'] #Dropout Rate
+epochs = config_model['default']['epochs'] #Number of epochs in the training
+batch_size = config_model['default']['batch_size'] #Number of elements in each batch
+padding_value_peptide = config_model['default']['padding_value_peptide']
+padding_side_peptide = config_model['default']['padding_side_peptide']
+truncating_side_peptide = config_model['default']['truncating_side_peptide']
+padding_value_tcr = config_model['default']['padding_value_tcr']
+padding_side_tcr = config_model['default']['padding_side_tcr']
+truncating_side_tcr = config_model['default']['truncating_side_tcr']
+weight_peptides = config_model['default']['weight_peptides']
+model_architecture_name = config_model['default']['model_architecture_name']
+peptide_selection = config_model['default']['peptide_selection']
+peptide_normalization_divisor = config_model['default']['peptide_normalization_divisor']
+tcr_normalization_divisor = config_model['default']['tcr_normalization_divisor']
+learning_rate = config_model['default']['learning_rate']
+convolution_filters_count = config_model['default']['convolution_filters_count']
+hidden_units_count = config_model['default']['hidden_units_count']
+mixed_precision = config_model['default']['mixed_precision']
+pep_conv_activation = config_model['default']['pep_conv_activation']
+cdr_conv_activation = config_model['default']['cdr_conv_activation']
+
+embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
+embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
+
+embedder_name_peptide = config_peptide['default']['embedder_name_peptide']
+embedder_source_peptide = config_peptide['default']['embedder_source_peptide']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
@@ -87,9 +102,8 @@ if embedder_source_peptide == 'in-house':
                                            encoding_name = embedder_name_peptide))
 
 else:
-    df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_peptide_{}_{}.pkl'
-                                                       .format(embedder_source_peptide,
-                                                               embedder_name_peptide.replace('/', '_'))))
+    df_peptides = pd.read_pickle(filepath_or_buffer = ('../data/s01_ep{}_embedding.pkl'
+                                                       .format(embedder_index_peptide)))
 
 # Get dataframe with unique encoded CDRs
 if embedder_source_tcr == 'in-house':
@@ -98,9 +112,8 @@ if embedder_source_tcr == 'in-house':
                .encode_unique_tcrs(df = data,
                                    encoding_name = embedder_name_tcr))
 else:
-    df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_embedding_tcr_{}_{}.pkl'
-                                                   .format(embedder_source_tcr,
-                                                           embedder_name_tcr.replace('/', '_'))))
+    df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_et{}_embedding.pkl'
+                                                   .format(embedder_index_tcr)))
 
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions
@@ -257,7 +270,9 @@ if model_architecture_name == 'CNN_CDR123_global_max':
                                             b3_shape = b3_shape,
                                             convolution_filters_count = convolution_filters_count,
                                             hidden_units_count = hidden_units_count,
-                                            mixed_precision = mixed_precision)
+                                            mixed_precision = mixed_precision,
+                                            pep_conv_activation = pep_conv_activation,
+                                            cdr_conv_activation = cdr_conv_activation)
 
 elif model_architecture_name == 'ff_CDR123':
     cdr_shape = a1_train.shape[1:]

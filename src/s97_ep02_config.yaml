@@ -1,0 +1,5 @@
+default:
+    embedder_index_peptide: '02'
+    embedder_name_peptide: esm1b
+    embedder_source_peptide: bio_embeddings
+    embedder_batch_size_peptide: null

@@ -63,6 +63,10 @@ hidden_units_count = config_model['default']['hidden_units_count']
 mixed_precision = config_model['default']['mixed_precision']
 pep_conv_activation = config_model['default']['pep_conv_activation']
 cdr_conv_activation = config_model['default']['cdr_conv_activation']
+tcr_clip_min = config_model['default']['tcr_clip_min']
+tcr_clip_max = config_model['default']['tcr_clip_max']
+peptide_clip_min = config_model['default']['peptide_clip_min']
+peptide_clip_max = config_model['default']['peptide_clip_max']
 
 embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
 embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
@@ -147,6 +151,19 @@ else:
 df_peptides = (df_peptides
                .drop(labels = 'count',
                      axis = 1))
+
+# Clip embeddings to a given interval
+if tcr_clip_min is not None or tcr_clip_max is not None:
+    df_tcrs = (df_tcrs
+               .applymap(func = lambda x: np.clip(a = x,
+                                                  a_min = tcr_clip_min,
+                                                  a_max = tcr_clip_max)))
+
+if peptide_clip_min is not None or peptide_clip_max is not None:
+    df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
+                                      .map(arg = lambda x: np.clip(a = x,
+                                                                   a_min = peptide_clip_min,
+                                                                   a_max = peptide_clip_max)))
 
 # Normalise embeddings
 df_tcrs /= tcr_normalization_divisor

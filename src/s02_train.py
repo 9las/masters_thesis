@@ -224,7 +224,8 @@ with tf.device("CPU"):
 del df_train
 
 tf_train = (tf_train
-            .shuffle(buffer_size = len(tf_train))
+            .shuffle(buffer_size = len(tf_train),
+                     seed = seed)
             .batch(batch_size = batch_size)
             .prefetch(buffer_size = tf.data.AUTOTUNE))
 

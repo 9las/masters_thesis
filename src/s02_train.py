@@ -76,6 +76,7 @@ embedder_source_peptide = config_peptide['default']['embedder_source_peptide']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
+tf.config.experimental.enable_op_determinism()
 
 # Set up keras to use mixed precision if on GPU
 if tf.config.list_physical_devices('GPU') and mixed_precision:

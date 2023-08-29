@@ -18,7 +18,8 @@ def CNN_CDR123_global_max(dropout_rate,
                           hidden_units_count,
                           mixed_precision,
                           pep_conv_activation,
-                          cdr_conv_activation):
+                          cdr_conv_activation,
+                          batch_normalization):
 
     # Activation
     dense_activation = 'sigmoid'
@@ -31,6 +32,14 @@ def CNN_CDR123_global_max(dropout_rate,
     b1 = keras.Input(shape = b1_shape, name ='b1')
     b2 = keras.Input(shape = b2_shape, name ='b2')
     b3 = keras.Input(shape = b3_shape, name ='b3')
+
+    if batch_normalization:
+        a1 = layers.BatchNormalization(axis = -1)(a1)
+        a2 = layers.BatchNormalization(axis = -1)(a2)
+        a3 = layers.BatchNormalization(axis = -1)(a3)
+        b1 = layers.BatchNormalization(axis = -1)(b1)
+        b2 = layers.BatchNormalization(axis = -1)(b2)
+        b3 = layers.BatchNormalization(axis = -1)(b3)
 
     # Convolutional Layers
     pep_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = 'same', activation = pep_conv_activation)(pep)

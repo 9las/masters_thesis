@@ -21,8 +21,8 @@ default:
     peptide_selection: null
     peptide_clip_min: null
     peptide_clip_max: null
-    tcr_clip_min: null
-    tcr_clip_max: null
+    tcr_clip_min: -1
+    tcr_clip_max: 1
     peptide_normalization_divisor: 5
     tcr_normalization_divisor: 1
     learning_rate: 0.001

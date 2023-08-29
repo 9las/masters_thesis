@@ -25,21 +25,30 @@ def CNN_CDR123_global_max(dropout_rate,
     dense_activation = 'sigmoid'
 
     # Inputs
-    pep = keras.Input(shape = peptide_shape, name ='pep')
-    a1 = keras.Input(shape = a1_shape, name ='a1')
-    a2 = keras.Input(shape = a2_shape, name ='a2')
-    a3 = keras.Input(shape = a3_shape, name ='a3')
-    b1 = keras.Input(shape = b1_shape, name ='b1')
-    b2 = keras.Input(shape = b2_shape, name ='b2')
-    b3 = keras.Input(shape = b3_shape, name ='b3')
+    pep_in = keras.Input(shape = peptide_shape, name ='pep')
+    a1_in  = keras.Input(shape = a1_shape, name ='a1')
+    a2_in  = keras.Input(shape = a2_shape, name ='a2')
+    a3_in  = keras.Input(shape = a3_shape, name ='a3')
+    b1_in  = keras.Input(shape = b1_shape, name ='b1')
+    b2_in  = keras.Input(shape = b2_shape, name ='b2')
+    b3_in  = keras.Input(shape = b3_shape, name ='b3')
 
     if batch_normalization:
-        a1 = layers.BatchNormalization(axis = -1)(a1)
-        a2 = layers.BatchNormalization(axis = -1)(a2)
-        a3 = layers.BatchNormalization(axis = -1)(a3)
-        b1 = layers.BatchNormalization(axis = -1)(b1)
-        b2 = layers.BatchNormalization(axis = -1)(b2)
-        b3 = layers.BatchNormalization(axis = -1)(b3)
+        pep = pep_in
+        a1 = layers.BatchNormalization(axis = -1)(a1_in)
+        a2 = layers.BatchNormalization(axis = -1)(a2_in)
+        a3 = layers.BatchNormalization(axis = -1)(a3_in)
+        b1 = layers.BatchNormalization(axis = -1)(b1_in)
+        b2 = layers.BatchNormalization(axis = -1)(b2_in)
+        b3 = layers.BatchNormalization(axis = -1)(b3_in)
+    else:
+        pep = pep_in
+        a1 = a1_in
+        a2 = a2_in
+        a3 = a3_in
+        b1 = b1_in
+        b2 = b2_in
+        b3 = b3_in
 
     # Convolutional Layers
     pep_1_CNN = layers.Conv1D(filters = convolution_filters_count, kernel_size = 1, padding = 'same', activation = pep_conv_activation)(pep)
@@ -151,7 +160,7 @@ def CNN_CDR123_global_max(dropout_rate,
         out = layers.Activation(activation = "sigmoid")(out)
 
     # Prepare model object
-    model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],
+    model = keras.Model(inputs = [pep_in, a1_in, a2_in, a3_in, b1_in, b2_in, b3_in],
                         outputs = out)
 
     return model

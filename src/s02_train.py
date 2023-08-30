@@ -67,7 +67,6 @@ tcr_clip_min = config_model['default']['tcr_clip_min']
 tcr_clip_max = config_model['default']['tcr_clip_max']
 peptide_clip_min = config_model['default']['peptide_clip_min']
 peptide_clip_max = config_model['default']['peptide_clip_max']
-batch_normalization = config_model['default']['batch_normalization']
 
 embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
 embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
@@ -292,8 +291,7 @@ if model_architecture_name == 'CNN_CDR123_global_max':
                                             hidden_units_count = hidden_units_count,
                                             mixed_precision = mixed_precision,
                                             pep_conv_activation = pep_conv_activation,
-                                            cdr_conv_activation = cdr_conv_activation,
-                                            batch_normalization = batch_normalization)
+                                            cdr_conv_activation = cdr_conv_activation)
 
 elif model_architecture_name == 'ff_CDR123':
     cdr_shape = a1_train.shape[1:]

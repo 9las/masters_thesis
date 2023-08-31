@@ -11,17 +11,17 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config")
 args = parser.parse_args()
-config_filename_tcr = args.config
+config_filename_cdr3 = args.config
 
 # Load config
-config_tcr = s99_project_functions.load_config(config_filename_tcr)
+config_cdr3 = s99_project_functions.load_config(config_filename_cdr3)
 config_main = s99_project_functions.load_config('s97_main_config.yaml')
 
 # Set parameters from config
-embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
-embedder_index_tcr = config_tcr['default']['embedder_index_tcr']
-embedder_batch_size_tcr = config_tcr['default']['embedder_batch_size_tcr']
-embedder_backend_tcr = config_tcr['default']['embedder_backend_tcr']
+embedder_name_cdr3 = config_cdr3['default']['embedder_name_cdr3']
+embedder_index_cdr3 = config_cdr3['default']['embedder_index_cdr3']
+embedder_batch_size_cdr3 = config_cdr3['default']['embedder_batch_size_cdr3']
+embedder_backend_cdr3 = config_cdr3['default']['embedder_backend_cdr3']
 data_filename = config_main['default']['data_filename']
 
 # Read data

@@ -80,8 +80,7 @@ elif embedder_backend_cdr3 == 'pt':
 
 # Do the embedding for positive binders - all unique TCRs
 data = (data
-        .filter(lambda x: x['binder'] is True)['train']
-        .select(range(10))
+        .filter(lambda x: x['binder'] is True)
         .map(function = get_cdr3_length)
         .map(function = split_amino_acids)
         .map(add_embeddings,

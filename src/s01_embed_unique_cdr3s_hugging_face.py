@@ -25,20 +25,8 @@ embedder_backend_cdr3 = config_cdr3['default']['embedder_backend_cdr3']
 data_filename = config_main['default']['data_filename']
 
 # Read data
-features = datasets.Features({'TRA_aa' : datasets.Value('string'),
-                              'TRB_aa' : datasets.Value('string'),
-                              'A1_start': datasets.Value('int16'),
-                              'A1_end': datasets.Value('int16'),
-                              'A2_start': datasets.Value('int16'),
-                              'A2_end': datasets.Value('int16'),
-                              'A3_start': datasets.Value('int16'),
-                              'A3_end': datasets.Value('int16'),
-                              'B1_start': datasets.Value('int16'),
-                              'B1_end': datasets.Value('int16'),
-                              'B2_start': datasets.Value('int16'),
-                              'B2_end': datasets.Value('int16'),
-                              'B3_start': datasets.Value('int16'),
-                              'B3_end': datasets.Value('int16'),
+features = datasets.Features({'A3' : datasets.Value('string'),
+                              'B3' : datasets.Value('string'),
                               'binder': datasets.Value('bool'),
                               'original_index': datasets.Value('int32')})
 
@@ -48,120 +36,84 @@ data = datasets.load_dataset(path = 'csv',
                              features = features)
 
 # Define functions
+def get_cdr3_length(example):
+    return_dict = dict()
+    return_dict['a3_length'] = len(example['A3'])
+    return_dict['b3_length'] = len(example['B3'])
+
+    return return_dict
+
 def split_amino_acids(example):
-    example['TRA_aa'] = ' '.join(example['TRA_aa'])
-    example['TRB_aa'] = ' '.join(example['TRB_aa'])
+    example['A3'] = ' '.join(example['A3'])
+    example['B3'] = ' '.join(example['B3'])
 
     return example
 
 def add_embeddings(batch):
     embeddings_dict = dict()
 
-    tcr_name_tuple = ('TRA_aa',
-                      'TRB_aa')
+    cdr3_name_tuple = ('A3',
+                       'B3')
 
-    tcr_encoded_name_tuple = ('tra_aa_encoded',
-                              'trb_aa_encoded')
+    cdr3_encoded_name_tuple = ('a3_encoded',
+                               'b3_encoded')
 
-    for i in range(len(tcr_name_tuple)):
-        tcr_name = tcr_name_tuple[i]
-        tcr_encoded_name = tcr_encoded_name_tuple[i]
+    for i in range(len(cdr3_name_tuple)):
+        cdr3_name = cdr3_name_tuple[i]
+        cdr3_encoded_name = cdr3_encoded_name_tuple[i]
 
-        embeddings_dict[tcr_encoded_name] = model(**tokenizer(text = batch[tcr_name],
-                                                              return_tensors = embedder_backend_tcr,
-                                                              padding = 'longest'))
+        embeddings_dict[cdr3_encoded_name] = model(**tokenizer(text = batch[cdr3_name],
+                                                               return_tensors = embedder_backend_cdr3,
+                                                               padding = 'longest'))
 
-        embeddings_dict[tcr_encoded_name] = embeddings_dict[tcr_encoded_name]['last_hidden_state']
+        embeddings_dict[cdr3_encoded_name] = embeddings_dict[cdr3_encoded_name]['last_hidden_state']
 
     return embeddings_dict
 
 # Get the embedder
-tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
+tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path = embedder_name_cdr3)
 
-if embedder_backend_tcr  == 'tf':
-    model = TFAutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
-elif embedder_backend_tcr == 'pt':
-    model = AutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
+if embedder_backend_cdr3  == 'tf':
+    model = TFAutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_cdr3)
+elif embedder_backend_cdr3 == 'pt':
+    model = AutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_cdr3)
 
 # Do the embedding for positive binders - all unique TCRs
 data = (data
-        .filter(lambda x: x['binder'] is True)
-        .map(split_amino_acids)
+        .filter(lambda x: x['binder'] is True)['train']
+        .select(range(10))
+        .map(function = get_cdr3_length)
+        .map(function = split_amino_acids)
         .map(add_embeddings,
-             batched = False,
-             batch_size = embedder_batch_size_tcr))
+             batched = True,
+             batch_size = embedder_batch_size_cdr3))
 
 # Make dataset into a pandas dataframe
 data.set_format(type = 'pandas',
                 columns = ['original_index',
-                           'tra_aa_encoded',
-                           'trb_aa_encoded',
-                           'A1_start',
-                           'A1_end',
-                           'A2_start',
-                           'A2_end',
-                           'A3_start',
-                           'A3_end',
-                           'B1_start',
-                           'B1_end',
-                           'B2_start',
-                           'B2_end',
-                           'B3_start',
-                           'B3_end'])
+                           'a3_encoded',
+                           'b3_encoded',
+                           'a3_length',
+                           'b3_length'])
 
 data_df = data['train'][:]
 
 data_df = (data_df
            .set_index(keys = 'original_index'))
 
-data_df[['tra_aa_encoded',
-         'trb_aa_encoded']] = (data_df[['tra_aa_encoded',
-                                        'trb_aa_encoded']]
-                                        .applymap(func = lambda x: np.vstack(x)))
-
-# Extract the CDRs
-cdr_name_tuple = ('a1_encoded',
-                  'a2_encoded',
-                  'a3_encoded',
-                  'b1_encoded',
-                  'b2_encoded',
-                  'b3_encoded')
-
-tcr_name_tuple = ('tra_aa_encoded',
-                  'tra_aa_encoded',
-                  'tra_aa_encoded',
-                  'trb_aa_encoded',
-                  'trb_aa_encoded',
-                  'trb_aa_encoded')
-
-cdr_start_name_tuple = ('A1_start',
-                        'A2_start',
-                        'A3_start',
-                        'B1_start',
-                        'B2_start',
-                        'B3_start')
-
-cdr_end_name_tuple = ('A1_end',
-                      'A2_end',
-                      'A3_end',
-                      'B1_end',
-                      'B2_end',
-                      'B3_end')
-
-for i in range(len(cdr_name_tuple)):
-    cdr_name = cdr_name_tuple[i]
-    tcr_name = tcr_name_tuple[i]
-    cdr_start_name = cdr_start_name_tuple[i]
-    cdr_end_name = cdr_end_name_tuple[i]
-
-    data_df[cdr_name] = data_df.apply(func = lambda x: x[tcr_name][x[cdr_start_name] + 1: x[cdr_end_name] + 1], # Add one due to <CLS> token
-                                      axis = 1)
-
 # Make embeddings into ND arrays
-data_df = (data_df
-           .filter(items = cdr_name_tuple)
-           .applymap(func = lambda x: np.vstack(x)))
+data_df[['a3_encoded',
+         'b3_encoded']] = (data_df[['a3_encoded',
+                                    'b3_encoded']]
+                           .applymap(func = lambda x: np.vstack(x)))
 
+# Remove padding
+data_df['a3_encoded'] = (data_df
+                         .apply(func = lambda x: x['a3_encoded'][1:x['a3_length'] + 1], # Add one due to <CLS> token
+                         axis = 1))
+data_df['b3_encoded'] = (data_df
+                         .apply(func = lambda x: x['b3_encoded'][1:x['b3_length'] + 1],
+                         axis = 1))
 
 # Save embeddings
-data_df.to_pickle(path = '../data/s01_et{}_embedding.pkl'.format(embedder_index_tcr))
+data_df.to_pickle(path = '../data/s01_e3c{}_embedding.pkl'.format(embedder_index_cdr3))

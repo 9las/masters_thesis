@@ -85,10 +85,19 @@ elif embedder_backend_tcr == 'pt':
 
 # Do the embedding for positive binders - all unique TCRs
 data = (data
+        .filter(lambda x: x['binder'] is True)['train']
+        .select(range(10))
+        .map(split_amino_acids)
+        .map(add_embeddings,
+             batched = True,
+             batch_size = embedder_batch_size_tcr))
+
+
+data = (data
         .filter(lambda x: x['binder'] is True)
         .map(split_amino_acids)
         .map(add_embeddings,
-             batched = False,
+             batched = True,
              batch_size = embedder_batch_size_tcr))
 
 # Make dataset into a pandas dataframe
@@ -114,6 +123,7 @@ data_df = data['train'][:]
 data_df = (data_df
            .set_index(keys = 'original_index'))
 
+# Make embeddings into ND arrays
 data_df[['tra_aa_encoded',
          'trb_aa_encoded']] = (data_df[['tra_aa_encoded',
                                         'trb_aa_encoded']]
@@ -157,10 +167,8 @@ for i in range(len(cdr_name_tuple)):
     data_df[cdr_name] = data_df.apply(func = lambda x: x[tcr_name][x[cdr_start_name] + 1: x[cdr_end_name] + 1], # Add one due to <CLS> token
                                       axis = 1)
 
-# Make embeddings into ND arrays
 data_df = (data_df
-           .filter(items = cdr_name_tuple)
-           .applymap(func = lambda x: np.vstack(x)))
+           .filter(items = cdr_name_tuple))
 
 
 # Save embeddings

@@ -39,7 +39,7 @@ embedder_index_peptide_tuple = tuple(range(1,
 
 embedder_index_cdr3_tuple = tuple(range(1,
                                        embedder_index_cdr3_max + 1))
-tcr_bin_step_size_tuple = (1, 0.1, 0.1, 0.1, 0.1)
+tcr_bin_step_size_tuple = (1, 0.1, 0.02, 0.1, 0.1)
 peptide_bin_step_size_tuple = (1, 0.1)
 cdr3_bin_step_size_tuple = (0.1,)
 

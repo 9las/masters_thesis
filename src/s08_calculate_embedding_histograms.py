@@ -103,6 +103,7 @@ for i in range(len(embedder_index_cdr3_tuple)):
 
     embedding = pd.read_pickle(filepath_or_buffer = '../data/s01_e3c{}_embedding.pkl'.format(embedder_index_cdr3_padded))
     embedding_min = embedding.applymap(func = lambda x: np.min(x)).min(axis = None)
+    embedding_max = embedding.applymap(func = lambda x: np.max(x)).max(axis = None)
     bin_edges = np.arange(start = embedding_min,
                           stop = embedding_max + cdr3_bin_step_size,
                           step = cdr3_bin_step_size)

@@ -43,7 +43,7 @@ pwalk(.l = list(data = data |>
                   pull(sequence_type),
                 embedder_name = data |>
                   pull(embedder_name),
-                x_break_increnment = c(1, 0.8, 0.1, 0.4 ,0.5 , 1, 0.8)),
+                x_break_increnment = c(1, 0.8, 0.1, 0.4, 0.5, 0.6, 1, 0.8)),
       .f = \(data,
              sequence_type,
              embedder_name,

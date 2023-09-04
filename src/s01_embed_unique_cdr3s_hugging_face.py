@@ -114,5 +114,8 @@ data_df['b3_encoded'] = (data_df
                          .apply(func = lambda x: x['b3_encoded'][1:x['b3_length'] + 1],
                          axis = 1))
 
+data_df = data_df[['a3_encoded',
+                   'b3_encoded']]
+
 # Save embeddings
 data_df.to_pickle(path = '../data/s01_e3c{}_embedding.pkl'.format(embedder_index_cdr3))

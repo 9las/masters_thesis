@@ -1,6 +1,6 @@
-# ESM1b
+# ESM1b + TCR-Bert
 default:
-    model_index: '05'
+    model_index: '30'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

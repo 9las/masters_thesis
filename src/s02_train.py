@@ -30,9 +30,14 @@ config_model = s99_project_functions.load_config(config_filename_model)
 
 embedder_index_tcr = config_model['default']['embedder_index_tcr']
 embedder_index_peptide = config_model['default']['embedder_index_peptide']
+embedder_index_cdr3 = config_model['default']['embedder_index_cdr3']
 
 config_filename_tcr = 's97_et{}_config.yaml'.format(embedder_index_tcr)
 config_filename_peptide = 's97_ep{}_config.yaml'.format(embedder_index_peptide)
+
+if embedder_index_cdr3:
+    config_filename_cdr3 = 's97_e3c{}_config.yaml'.format(embedder_index_cdr3)
+    config_cdr3 = s99_project_functions.load_config(config_filename_cdr3)
 
 config_tcr = s99_project_functions.load_config(config_filename_tcr)
 config_peptide = s99_project_functions.load_config(config_filename_peptide)

@@ -142,7 +142,7 @@ def CNN_CDR123_global_max(dropout_rate,
         out = layers.Activation(activation = "sigmoid")(out)
 
     # Prepare model object
-    model = keras.Model(inputs = [pep_in, a1_in, a2_in, a3_in, b1_in, b2_in, b3_in],
+    model = keras.Model(inputs = [pep, a1, a2, a3, b1, b2, b3],
                         outputs = out)
 
     return model
@@ -150,7 +150,12 @@ def CNN_CDR123_global_max(dropout_rate,
 def ff_CDR123(dropout_rate,
               seed,
               peptide_shape,
-              cdr_shape,
+              a1_shape,
+              a2_shape,
+              a3_shape,
+              b1_shape,
+              b2_shape,
+              b3_shape,
               hidden_units_count,
               mixed_precision):
 
@@ -159,12 +164,12 @@ def ff_CDR123(dropout_rate,
 
     # Inputs
     pep = keras.Input(shape = peptide_shape, name = 'pep')
-    a1 = keras.Input(shape = cdr_shape, name = 'a1')
-    a2 = keras.Input(shape = cdr_shape, name = 'a2')
-    a3 = keras.Input(shape = cdr_shape, name = 'a3')
-    b1 = keras.Input(shape = cdr_shape, name = 'b1')
-    b2 = keras.Input(shape = cdr_shape, name = 'b2')
-    b3 = keras.Input(shape = cdr_shape, name = 'b3')
+    a1 = keras.Input(shape = a1_shape, name = 'a1')
+    a2 = keras.Input(shape = a2_shape, name = 'a2')
+    a3 = keras.Input(shape = a3_shape, name = 'a3')
+    b1 = keras.Input(shape = b1_shape, name = 'b1')
+    b2 = keras.Input(shape = b2_shape, name = 'b2')
+    b3 = keras.Input(shape = b3_shape, name = 'b3')
 
     # Concatenate all input layers to a single layer
     cat = layers.Concatenate()([pep, a1, a2, a3, b1, b2, b3])

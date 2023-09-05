@@ -16,9 +16,6 @@ default:
     padding_value_tcr: 0
     padding_side_tcr: right
     truncating_side_tcr: right
-    padding_value_cdr3: 0
-    padding_side_cd3: right
-    truncatinf_side_cdr3: right
     peptide_selection: null
     peptide_clip_min: null
     peptide_clip_max: null

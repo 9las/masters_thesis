@@ -35,10 +35,6 @@ embedder_index_cdr3 = config_model['default']['embedder_index_cdr3']
 config_filename_tcr = 's97_et{}_config.yaml'.format(embedder_index_tcr)
 config_filename_peptide = 's97_ep{}_config.yaml'.format(embedder_index_peptide)
 
-if embedder_index_cdr3:
-    config_filename_cdr3 = 's97_e3c{}_config.yaml'.format(embedder_index_cdr3)
-    config_cdr3 = s99_project_functions.load_config(config_filename_cdr3)
-
 config_tcr = s99_project_functions.load_config(config_filename_tcr)
 config_peptide = s99_project_functions.load_config(config_filename_peptide)
 
@@ -62,6 +58,7 @@ model_architecture_name = config_model['default']['model_architecture_name']
 peptide_selection = config_model['default']['peptide_selection']
 peptide_normalization_divisor = config_model['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config_model['default']['tcr_normalization_divisor']
+cdr3_normalization_divisor = config_model['default']['cdr3_normalization_divisor']
 learning_rate = config_model['default']['learning_rate']
 convolution_filters_count = config_model['default']['convolution_filters_count']
 hidden_units_count = config_model['default']['hidden_units_count']
@@ -72,6 +69,8 @@ tcr_clip_min = config_model['default']['tcr_clip_min']
 tcr_clip_max = config_model['default']['tcr_clip_max']
 peptide_clip_min = config_model['default']['peptide_clip_min']
 peptide_clip_max = config_model['default']['peptide_clip_max']
+cdr3_clip_min = config_model['default']['cdr3_clip_min']
+cdr3_clip_max = config_model['default']['cdr3_clip_max']
 
 embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
 embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
@@ -125,6 +124,21 @@ else:
     df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_et{}_embedding.pkl'
                                                    .format(embedder_index_tcr)))
 
+if embedder_index_cdr3:
+# Replace CDR3 embeddings
+    df_cdr3 = pd.read_pickle(filepath_or_buffer = ('../data/s01_e3c{}_embedding.pkl'
+                                                   .format(embedder_index_cdr3)))
+
+    df_tcrs = (df_tcrs
+               .drop(labels = ['a3_encoded',
+                               'b3_encoded'],
+                     axis = 'columns')
+               .merge(right = df_cdr3,
+                      how = 'left',
+                      on = 'original_index'))
+
+    del df_cdr3
+
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions
                .pad_unique_peptides(df = df_peptides,
@@ -160,10 +174,24 @@ df_peptides = (df_peptides
 
 # Clip embeddings to a given interval
 if tcr_clip_min is not None or tcr_clip_max is not None:
-    df_tcrs = (df_tcrs
-               .applymap(func = lambda x: np.clip(a = x,
-                                                  a_min = tcr_clip_min,
-                                                  a_max = tcr_clip_max)))
+    df_tcrs[['a1_encoded',
+             'a2_encoded',
+             'b1_encoded',
+             'b2_encoded']] = (df_tcrs[['a1_encoded',
+                                        'a2_encoded',
+                                        'b1_encoded',
+                                        'b2_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max)))
+
+if cdr3_clip_min is not None or cdr3_clip_max is not None:
+    df_tcrs[['a3_encoded',
+             'b3_encoded']] = (df_tcrs[['a3_encoded',
+                                        'b3_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max))
 
 if peptide_clip_min is not None or peptide_clip_max is not None:
     df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
@@ -172,7 +200,14 @@ if peptide_clip_min is not None or peptide_clip_max is not None:
                                                                    a_max = peptide_clip_max)))
 
 # Normalise embeddings
-df_tcrs /= tcr_normalization_divisor
+df_tcrs[['a1_encoded',
+         'a2_encoded',
+         'b1_encoded',
+         'b2_encoded']] /= tcr_normalization_divisor
+
+df_tcrs[['a3_encoded',
+         'b3_encoded']] /= cdr3_normalization_divisor
+
 df_peptides['peptide_encoded'] /= peptide_normalization_divisor
 
 if model_architecture_name == 'ff_CDR123':
@@ -275,14 +310,14 @@ tf_validation = (tf_validation
 model_architecture = getattr(s98_models, model_architecture_name)
 peptide_shape = tuple(tf_train.element_spec[0]['pep'].shape[1:])
 
-if model_architecture_name == 'CNN_CDR123_global_max':
-    a1_shape = tuple(tf_train.element_spec[0]['a1'].shape[1:])
-    a2_shape = tuple(tf_train.element_spec[0]['a2'].shape[1:])
-    a3_shape = tuple(tf_train.element_spec[0]['a3'].shape[1:])
-    b1_shape = tuple(tf_train.element_spec[0]['b1'].shape[1:])
-    b2_shape = tuple(tf_train.element_spec[0]['b2'].shape[1:])
-    b3_shape = tuple(tf_train.element_spec[0]['b3'].shape[1:])
+a1_shape = tuple(tf_train.element_spec[0]['a1'].shape[1:])
+a2_shape = tuple(tf_train.element_spec[0]['a2'].shape[1:])
+a3_shape = tuple(tf_train.element_spec[0]['a3'].shape[1:])
+b1_shape = tuple(tf_train.element_spec[0]['b1'].shape[1:])
+b2_shape = tuple(tf_train.element_spec[0]['b2'].shape[1:])
+b3_shape = tuple(tf_train.element_spec[0]['b3'].shape[1:])
 
+if model_architecture_name == 'CNN_CDR123_global_max':
     model_architecture = model_architecture(dropout_rate = dropout_rate,
                                             seed = seed,
                                             peptide_shape = peptide_shape,
@@ -299,12 +334,15 @@ if model_architecture_name == 'CNN_CDR123_global_max':
                                             cdr_conv_activation = cdr_conv_activation)
 
 elif model_architecture_name == 'ff_CDR123':
-    cdr_shape = a1_train.shape[1:]
-
     model_architecture = model_architecture(dropout_rate = dropout_rate,
                                             seed = seed,
                                             peptide_shape = peptide_shape,
-                                            cdr_shape = cdr_shape,
+                                            a1_shape = a1_shape,
+                                            a2_shape = a2_shape,
+                                            a3_shape = a3_shape,
+                                            b1_shape = b1_shape,
+                                            b2_shape = b2_shape,
+                                            b3_shape = b3_shape,
                                             hidden_units_count = hidden_units_count,
                                             mixed_precision = mixed_precision)
 

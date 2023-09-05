@@ -191,7 +191,7 @@ if cdr3_clip_min is not None or cdr3_clip_max is not None:
                                         'b3_encoded']]
                                .applymap(func = lambda x: np.clip(a = x,
                                                                   a_min = tcr_clip_min,
-                                                                  a_max = tcr_clip_max))
+                                                                  a_max = tcr_clip_max)))
 
 if peptide_clip_min is not None or peptide_clip_max is not None:
     df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']

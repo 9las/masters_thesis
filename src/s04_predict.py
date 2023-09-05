@@ -23,6 +23,7 @@ config_model = s99_project_functions.load_config(config_filename_model)
 
 embedder_index_tcr = config_model['default']['embedder_index_tcr']
 embedder_index_peptide = config_model['default']['embedder_index_peptide']
+embedder_index_cdr3 = config_model['default']['embedder_index_cdr3']
 
 config_filename_tcr = 's97_et{}_config.yaml'.format(embedder_index_tcr)
 config_filename_peptide = 's97_ep{}_config.yaml'.format(embedder_index_peptide)
@@ -43,11 +44,14 @@ padding_side_tcr = config_model['default']['padding_side_tcr']
 truncating_side_tcr = config_model['default']['truncating_side_tcr']
 peptide_normalization_divisor = config_model['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config_model['default']['tcr_normalization_divisor']
+cdr3_normalization_divisor = config_model['default']['cdr3_normalization_divisor']
 model_architecture_name = config_model['default']['model_architecture_name']
 tcr_clip_min = config_model['default']['tcr_clip_min']
 tcr_clip_max = config_model['default']['tcr_clip_max']
 peptide_clip_min = config_model['default']['peptide_clip_min']
 peptide_clip_max = config_model['default']['peptide_clip_max']
+cdr3_clip_min = config_model['default']['cdr3_clip_min']
+cdr3_clip_max = config_model['default']['cdr3_clip_max']
 
 embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
 embedder_source_tcr = config_tcr['default']['embedder_source_tcr']
@@ -94,6 +98,21 @@ else:
     df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_et{}_embedding.pkl'
                                                    .format(embedder_index_tcr)))
 
+if embedder_index_cdr3:
+# Replace CDR3 embeddings
+    df_cdr3 = pd.read_pickle(filepath_or_buffer = ('../data/s01_e3c{}_embedding.pkl'
+                                                   .format(embedder_index_cdr3)))
+
+    df_tcrs = (df_tcrs
+               .drop(labels = ['a3_encoded',
+                               'b3_encoded'],
+                     axis = 'columns')
+               .merge(right = df_cdr3,
+                      how = 'left',
+                      on = 'original_index'))
+
+    del df_cdr3
+
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions
                .pad_unique_peptides(df = df_peptides,
@@ -112,10 +131,24 @@ df_peptides = (df_peptides
 
 # Clip embeddings to a given interval
 if tcr_clip_min is not None or tcr_clip_max is not None:
-    df_tcrs = (df_tcrs
-               .applymap(func = lambda x: np.clip(a = x,
-                                                  a_min = tcr_clip_min,
-                                                  a_max = tcr_clip_max)))
+    df_tcrs[['a1_encoded',
+             'a2_encoded',
+             'b1_encoded',
+             'b2_encoded']] = (df_tcrs[['a1_encoded',
+                                        'a2_encoded',
+                                        'b1_encoded',
+                                        'b2_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max)))
+
+if cdr3_clip_min is not None or cdr3_clip_max is not None:
+    df_tcrs[['a3_encoded',
+             'b3_encoded']] = (df_tcrs[['a3_encoded',
+                                        'b3_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max)))
 
 if peptide_clip_min is not None or peptide_clip_max is not None:
     df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
@@ -124,7 +157,14 @@ if peptide_clip_min is not None or peptide_clip_max is not None:
                                                                    a_max = peptide_clip_max)))
 
 # Normalise embeddings
-df_tcrs /= tcr_normalization_divisor
+df_tcrs[['a1_encoded',
+         'a2_encoded',
+         'b1_encoded',
+         'b2_encoded']] /= tcr_normalization_divisor
+
+df_tcrs[['a3_encoded',
+         'b3_encoded']] /= cdr3_normalization_divisor
+
 df_peptides['peptide_encoded'] /= peptide_normalization_divisor
 
 if model_architecture_name == 'ff_CDR123':

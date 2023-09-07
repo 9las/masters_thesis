@@ -1,4 +1,5 @@
 # ESM1b + TCR-Bert
+# Normalisation divisor of 20 for CDR3
 default:
     model_index: '30'
     model_architecture_name: CNN_CDR123_global_max

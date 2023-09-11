@@ -35,3 +35,5 @@ default:
     mixed_precision: False
     pep_conv_activation: relu
     cdr_conv_activation: sigmoid
+    full_training: True
+    short_training: True

@@ -398,3 +398,33 @@ history_max_auc01.to_csv(path_or_buf = '../results/s11_m{}_training_history_max_
                                                                                                          t,
                                                                                                          v),
                          sep = '\t')
+
+# Load in data again for prediction
+data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
+                                                     data_filename),
+                   usecols = ['A1',
+                              'A2',
+                              'A3',
+                              'B1',
+                              'B2',
+                              'B3',
+                              'peptide',
+                              'binder',
+                              'partition',
+                              'original_index'])
+
+# Get validation data
+data = (data
+        .query(expr = 'partition == @v'))
+
+# Load the model
+model = keras.models.load_model(filepath = '../checkpoint/s11_m{}_t{}v{}'.format(model_index, t, v),
+                                custom_objects = {'auc01': s99_project_functions.auc01})
+
+# Do the prediciton
+data['prediction'] = model.predict(x = tf_validation)
+
+# Save predictions
+data.to_csv(path_or_buf = '../data/s11_m{}_t{}v{}_predictions.tsv'.format(model_index, t, v),
+            sep = '\t',
+            index = False)

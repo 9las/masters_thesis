@@ -415,7 +415,9 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
 
 # Get validation data
 data = (data
-        .query(expr = 'partition == @v'))
+        .query(expr = 'partition == @v')
+        .drop(labels = 'partition',
+              axis = 1))
 
 # Load the model
 model = keras.models.load_model(filepath = '../checkpoint/s11_m{}_t{}v{}'.format(model_index, t, v),

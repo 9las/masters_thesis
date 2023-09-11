@@ -20,8 +20,11 @@ default:
     peptide_clip_max: null
     tcr_clip_min: null
     tcr_clip_max: null
+    cdr3_clip_min: null
+    cdr3_clip_max: null
     peptide_normalization_divisor: 5
     tcr_normalization_divisor: 5
+    cdr3_normalization_divisor: 5
     learning_rate: 0.001
     convolution_filters_count: 16
     hidden_units_count: 64

@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
-#PBS -l nodes=1:gpus=1:ppn=4,mem=188GB,walltime=2:00:00
+#PBS -l nodes=1:gpus=1:ppn=4,mem=188GB,walltime=4:00:00
 #PBS -t 0-2%3
 #PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/
@@ -28,7 +28,7 @@ v_array=(1 2 4)
 
 # Run model
 #./s02_train.py -c $1 -t ${t_array[$t_index]} -v ${v_array[$v_index]} -n ${n_array[$n_index]}
-./s02_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
+./s11_train_and_predict.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}
 
 # Get status
 qstat -f -1 $PBS_JOBID

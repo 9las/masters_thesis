@@ -9,6 +9,7 @@ default:
     weight_peptides: True
     embedder_index_tcr: '04'
     embedder_index_peptide: '01'
+    embedder_index_cdr3: null
     padding_value_peptide: -5
     padding_side_peptide: right
     truncating_side_peptide: right

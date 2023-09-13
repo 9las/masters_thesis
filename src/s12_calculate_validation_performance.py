@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 import glob
 import s99_project_functions
+import re
 
 # Functions
 def ppv(y_true, y_score):
@@ -67,11 +68,13 @@ data = (data
                                                     'auc01',
                                                     'ppv'],
                                            dtype = object))
-        .sort_values(by = ['tcr_normalization_divisor',
+        .sort_values(by = ['model_index',
+                           'tcr_normalization_divisor',
                            'test_partition',
                            'validation_partition',
                            'count_positive'],
                      ascending = [True,
+                                  True,
                                   True,
                                   True,
                                   False]))
@@ -86,11 +89,13 @@ data_summary = (data
                              'auc': 'mean',
                              'auc01': 'mean',
                              'ppv': 'mean'})
-                .sort_values(by = ['tcr_normalization_divisor',
-                           'test_partition',
-                           'validation_partition',
-                           'count_positive'],
+                .sort_values(by = ['model_index',
+                                   'tcr_normalization_divisor',
+                                   'test_partition',
+                                   'validation_partition',
+                                   'count_positive'],
                      ascending = [True,
+                                  True,
                                   True,
                                   True,
                                   False]))

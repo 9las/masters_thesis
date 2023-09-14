@@ -9,8 +9,12 @@ data <- read_tsv(file = "../data/s12_validation_performance_summary.tsv")
 data <- data |>
   mutate(test_validation_partition = str_glue("t{test_partition}v{validation_partition}"))
 
-data |>
-  filter(model_index %in% c(19, 25, 34)) |>
+# ESM1b 2X (sigmoid)
+
+data_filtered <- data |>
+  filter(model_index %in% c(19, 25, 34, 35))
+
+p <- data_filtered |>
   ggplot(mapping = aes(x = tcr_normalization_divisor,
                        y = auc,
                        color = test_validation_partition,
@@ -18,8 +22,49 @@ data |>
   geom_line()+
   geom_point()
 
-data |>
-  filter(model_index %in% c(5, 16, 36, 37 ,38)) |>
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = auc01,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = ppv,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+# ESM1b (ReLU)
+
+data_filtered <- data |>
+  filter(model_index %in% c(5, 16, 36, 37 ,38, 42, 43, 44, 45))
+
+p <- data_filtered |>
   ggplot(mapping = aes(x = tcr_normalization_divisor,
                        y = auc,
                        color = test_validation_partition,
@@ -27,11 +72,89 @@ data |>
   geom_line()+
   geom_point()
 
-data |>
-  filter(model_index %in% c(17, 18, 39, 40 ,41)) |>
+ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = auc01,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = ppv,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+# ESM1b (sigmoid)
+
+data_filtered <- data |>
+  filter(model_index %in% c(17, 18, 39, 40 ,41, 46, 47, 48, 49))
+
+p <- data_filtered |>
   ggplot(mapping = aes(x = tcr_normalization_divisor,
                        y = auc,
                        color = test_validation_partition,
                        group = test_validation_partition)) +
   geom_line()+
   geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = auc01,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = tcr_normalization_divisor,
+                       y = ppv,
+                       color = test_validation_partition,
+                       group = test_validation_partition)) +
+  geom_line()+
+  geom_point()
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")

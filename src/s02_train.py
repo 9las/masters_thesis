@@ -61,6 +61,7 @@ cdr3_clip_min = config_model['default']['cdr3_clip_min']
 cdr3_clip_max = config_model['default']['cdr3_clip_max']
 
 patience = config_model['default']['patience'] #Patience for Early Stopping
+start_from_epoch = config_model['default']['start_from_epoch']
 dropout_rate = config_model['default']['dropout_rate'] #Dropout Rate
 epochs = config_model['default']['epochs'] #Number of epochs in the training
 batch_size = config_model['default']['batch_size'] #Number of elements in each batch
@@ -368,7 +369,8 @@ history = model_architecture.fit(x = tf_train,
                                  validation_data = tf_validation,
                                  callbacks = [keras.callbacks.EarlyStopping(monitor = 'val_auc01',
                                                                             mode = 'max',
-                                                                            patience = patience),
+                                                                            patience = patience,
+                                                                            start_from_epoch = start_from_epoch),
                                               keras.callbacks.ModelCheckpoint(filepath = '../checkpoint/s02_m{}_t{}v{}'.format(model_index,t,v),
                                                                               monitor = 'val_auc01',
                                                                               mode = 'max',

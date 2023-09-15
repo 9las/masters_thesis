@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -A vaccine -W group_list=vaccine
 #PBS -l nodes=1:gpus=1:ppn=4,mem=188GB,walltime=4:00:00
-#PBS -t 0-16%17
+#PBS -t 0-1
 #PBS -d /home/projects/vaccine/people/nilsch/masters_thesis/src/
 #PBS -e /home/projects/vaccine/people/nilsch/masters_thesis/logs/
 #PBS -o /home/projects/vaccine/people/nilsch/masters_thesis/logs/
@@ -15,8 +15,8 @@ cd $PBS_O_INITDIR
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
-t_array=(0 0 0 1 1 1 2 2 2 2 3 3 3 4 4 4 4)
-v_array=(2 3 4 0 3 4 0 1 3 4 0 1 2 0 1 2 3)
+t_array=(2 3)
+v_array=(3 2)
 
 # Run model
 ./s02_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}

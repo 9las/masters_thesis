@@ -15,8 +15,8 @@ cd $PBS_O_INITDIR
 source /home/projects/vaccine/people/nilsch/mambaforge/etc/profile.d/conda.sh
 conda activate env
 
-t_array=(1 2 3)
-v_array=(3 3 1)
+t_array=(3 4 4)
+v_array=(4 0 2)
 
 # Run model
 ./s02_train.py -c $1 -t ${t_array[$PBS_ARRAYID]} -v ${v_array[$PBS_ARRAYID]}

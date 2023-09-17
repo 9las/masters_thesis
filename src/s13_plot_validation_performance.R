@@ -60,19 +60,19 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__ppv.svg'),
        units = "cm")
 
 # ESM1b (ReLU)
-
 data_filtered <- data |>
-  filter(model_index %in% c(5, 16, 36, 37 ,38, 42, 43, 44, 45))
+  filter(model_index %in% c(5, 36, 37 ,38, 42, 43, 44, 45, 17, 18, 39, 40, 46, 47, 48, 49))
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = auc,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b__auc.svg'),
        plot = p,
        path = "../results",
        width = 30,
@@ -80,14 +80,15 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc.svg'),
        units = "cm")
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = auc01,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc01.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b__auc01.svg'),
        plot = p,
        path = "../results",
        width = 30,
@@ -95,64 +96,15 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__auc01.svg'),
        units = "cm")
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = ppv,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_relu__ppv.svg'),
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-# ESM1b (sigmoid)
-
-data_filtered <- data |>
-  filter(model_index %in% c(17, 18, 39, 40 ,41, 46, 47, 48, 49))
-
-p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
-                       y = auc,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
-
-ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__auc.svg'),
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
-                       y = auc01,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
-
-ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__auc01.svg'),
-       plot = p,
-       path = "../results",
-       width = 30,
-       height = 20,
-       units = "cm")
-
-p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
-                       y = ppv,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
-
-ggsave(filename = glue('s13_plot__normalisation__esm1b_sigmoid__ppv.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b__ppv.svg'),
        plot = p,
        path = "../results",
        width = 30,

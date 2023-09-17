@@ -1,5 +1,5 @@
 # ESM1b
-# Normalisation divisor of 40 for TCR
+# Normalisation divisor of 45 for TCR
 default:
     model_index: '45'
     model_architecture_name: CNN_CDR123_global_max

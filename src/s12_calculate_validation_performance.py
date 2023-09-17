@@ -19,10 +19,10 @@ def ppv(y_true, y_score):
     ppv = n_true_top / n_top
     return ppv
 
-def get_normalisation_divisor(model_index):
+def get_parameter(model_index, parameter):
     config_filename_model = 's97_m{}_config.yaml'.format(model_index)
     config_model = s99_project_functions.load_config(config_filename_model)
-    tcr_normalization_divisor = config_model['default']['tcr_normalization_divisor']
+    tcr_normalization_divisor = config_model['default'][parameter]
 
     return tcr_normalization_divisor
 
@@ -41,7 +41,10 @@ for file_path in file_path_iterator:
             .assign(model_index = int(model_index_padded.lstrip()),
                     test_partition = int(result.group(2)),
                     validation_partition = int(result.group(3)),
-                    tcr_normalization_divisor = get_normalisation_divisor(model_index_padded)))
+                    tcr_normalization_divisor = get_parameter(model_index = model_index_padded,
+                                                              parameter = 'tcr_normalization_divisor'),
+                    cdr_conv_activation = get_parameter(model_index = model_index_padded,
+                                                        parameter = 'cdr_conv_activation')))
 
     df_list.append(df)
 
@@ -52,6 +55,7 @@ data = pd.concat(objs = df_list,
 data = (data
         .groupby(['model_index',
                   'tcr_normalization_divisor',
+                  'cdr_conv_activation',
                   'test_partition',
                   'validation_partition',
                   'peptide'])
@@ -69,12 +73,10 @@ data = (data
                                                     'ppv'],
                                            dtype = object))
         .sort_values(by = ['model_index',
-                           'tcr_normalization_divisor',
                            'test_partition',
                            'validation_partition',
                            'count_positive'],
                      ascending = [True,
-                                  True,
                                   True,
                                   True,
                                   False]))
@@ -83,6 +85,7 @@ data = (data
 data_summary = (data
                 .groupby(['model_index',
                           'tcr_normalization_divisor',
+                          'cdr_conv_activation',
                           'test_partition',
                           'validation_partition'])
                 .agg(func = {'count_positive': 'sum',
@@ -90,12 +93,10 @@ data_summary = (data
                              'auc01': 'mean',
                              'ppv': 'mean'})
                 .sort_values(by = ['model_index',
-                                   'tcr_normalization_divisor',
                                    'test_partition',
                                    'validation_partition',
                                    'count_positive'],
                      ascending = [True,
-                                  True,
                                   True,
                                   True,
                                   False]))

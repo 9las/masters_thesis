@@ -2,9 +2,18 @@
 library(tidyverse)
 library(fs)
 library(glue)
+library(argparser)
+
+parser <- arg_parser(description = "Plot training history")
+parser <- parser |>
+  add_argument(arg = "model_index",
+               help = "Index for model to plot training history for")
+
+args <- parse_args(parser)
+model_index <- args$model_index
 
 file_paths <- dir_ls(path = "../results",
-                     regexp = "s02_m\\d{2}_training_history_t\\d{1}v\\d{1}.tsv")
+                     glob = glue('../results/s02_m{model_index}_training_history_t?v?.tsv'))
 
 data <- read_tsv(file = file_paths,
                  id = "path")

@@ -61,7 +61,7 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__ppv.svg'),
 
 # ESM1b (ReLU)
 data_filtered <- data |>
-  filter(model_index %in% c(5, 36, 37 ,38, 42, 43, 44, 45, 17, 18, 39, 40, 46, 47, 48, 49))
+  filter(model_index %in% c(5, 36, 37 ,38, 42, 43, 44, 45, 17, 18, 39, 40, 46, 47, 48, 49, 50, 51, 52, 53 ,54))
 
 p <- data_filtered |>
   ggplot(mapping = aes(x = factor(tcr_normalization_divisor),

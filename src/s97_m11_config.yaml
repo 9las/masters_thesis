@@ -4,8 +4,9 @@ default:
     model_index: '11'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
+    start_from_epoch: 500
     dropout_rate: 0.6
-    epochs: 200
+    epochs: 1000
     batch_size: 64
     weight_peptides: True
     embedder_index_tcr: '03'

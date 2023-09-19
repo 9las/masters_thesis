@@ -152,6 +152,159 @@ subset_data <- function(data, model_index_to_name_list){
                            names()))
 }
 
+model_index_to_name_list <- c("No dropout and no weighting" = "4",
+                              "Weighting only" = "2",
+                              "Dropout only" = "3",
+                              "Dropout and weighting" = "1")
+
+
+data_subset <- data |>
+  subset_data(model_index_to_name_list = model_index_to_name_list)
+
+data_summary_subset <- data_summary |>
+  subset_data(model_index_to_name_list = model_index_to_name_list)
+
+
+data_subset_delta <- data_subset |>
+  left_join(y = data_subset |>
+              select(!c(count_positive,
+                        peptide_count_positive)),
+            by = "peptide") |>
+  filter(model_index.x != model_index.y) |>
+  mutate(auc_delta = auc.y - auc.x,
+         auc01_delta = auc01.y - auc01.x,
+         ppv_delta = ppv.y - ppv.x)
+
+data_summary_subset_delta <- data_summary_subset |>
+  left_join(y = data_summary_subset |>
+              select(!c(count_positive,
+                        statistic_count_positive)),
+            by = "statistic") |>
+  filter(model_index.x != model_index.y) |>
+  mutate(auc_delta = auc.y - auc.x,
+         auc01_delta = auc01.y - auc01.x,
+         ppv_delta = ppv.y - ppv.x)
+
+data_count_sign <- data_subset_delta |>
+  group_by(model_index.x,
+           model_name.x,
+           model_index.y,
+           model_name.y) |>
+  summarise(across(.cols = c(auc_delta,
+                             auc01_delta,
+                             ppv_delta),
+                   .fns = list(count_greater = \(x) (x >= 0) |>
+                                 sum(),
+                               count_lesser = \(x) (x < 0) |>
+                                 sum()),
+                   .names = "{.col}.{.fn}")) |>
+  pivot_longer(cols = !c(model_index.x,
+                         model_name.x,
+                         model_index.y,
+                         model_name.y),
+               names_to = c(".value",
+                            "condition"),
+               names_sep = "\\.") |>
+  mutate(condition = if_else(condition = condition == "count_greater",
+                             true = "positive",
+                             false = "negative")) |>
+  rename_with(.fn = \(x) paste("count",
+                               x,
+                               sep = "_"),
+              .cols = ends_with("_delta")) |>
+  arrange(model_index.x,
+          model_index.y,
+          condition)
+
+data_subset_delta |>
+  ggplot(mapping = aes(x = peptide_count_positive |>
+                         as_factor(),
+                       y = auc_delta,
+                       fill = model_index_name.y))+
+  geom_col(position = "dodge")+
+  facet_wrap(facets = vars(model_index_name.x))+
+  labs(x = "Peptide",
+       fill = "Model")+
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+model_index_name_levels <- data_subset |> 
+  pull(model_index_name) |> 
+  levels()
+
+model_index_name_count <- model_index_name_levels |>
+  length()
+
+color_palette <- setNames(object = scales::hue_pal()(model_index_name_count),
+                          nm = model_index_name_levels)
+
+abe <- data_subset_delta |>
+  group_by(model_index.x,
+           model_name.x,
+           model_index_name.x) |>
+  nest() |>
+  left_join(y = data_summary_subset_delta |>
+              group_by(model_index.x,
+                       model_name.x,
+                       model_index_name.x) |>
+              nest(.key = "data_summary")) |>
+  mutate(plot = pmap(.l = list(model_index_name.x,
+                               data,
+                               data_summary),
+                     .f = \(x,
+                            y,
+                            z){
+                       min_auc_delta <- c(y |>
+                                           pull(auc_delta),
+                                         z |>
+                                           pull(auc_delta)) |>
+                         min()
+                       
+                       max_auc_delta <- c(y |>
+                                            pull(auc_delta),
+                                          z |>
+                                            pull(auc_delta)) |>
+                         max()
+                       
+                       p1 <- y |>
+                         ggplot(mapping = aes(x = peptide_count_positive |>
+                                                as_factor(),
+                                              y = auc_delta,
+                                              fill = model_index_name.y))+
+                         geom_col(position = "dodge")+
+                         scale_fill_manual(values = color_palette,
+                                           drop = FALSE)+
+                         labs(x = "Peptide",
+                              fill = "Model")+
+                         theme(axis.title.y = element_blank(),
+                               axis.text.y = element_blank(),
+                               axis.ticks.y = element_blank())+
+                         ylim(min_auc_delta, max_auc_delta)+
+                         labs(title = x)
+                       
+                       p2 <- z |>
+                         ggplot(mapping = aes(x = statistic_count_positive,
+                                              y = auc_delta,
+                                              fill = model_index_name.y))+
+                         geom_col(position = "dodge")+
+                         scale_fill_manual(values = color_palette,
+                                           drop = FALSE)+
+                         labs(x = "Statistic",
+                              fill = "Model")+
+                         ylim(min_auc_delta, max_auc_delta)
+                       
+                       p2+
+                         p1+
+                         plot_layout(widths = c(0.075, 0.925))
+                     }))
+
+(abe |> pull(plot) |> wrap_plots())+
+  plot_layout(guides = "collect")&
+  theme(legend.position = "top",
+        legend.justification = "left",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" = "4",
                                                   "Weighting only" = "2",
                                                   "Dropout only" = "3",

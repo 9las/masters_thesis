@@ -24,8 +24,29 @@ data_summary <- data_summary |>
 
 
 # Functions ---------------------------------------------------------------
+subset_data <- function(data, model_index_to_name_list){
+  model_index_to_index_name_list <- model_index_to_name_list
+  model_index_to_index_name_list |>
+    names() <- str_c(model_index_to_name_list,
+                     model_index_to_name_list |>
+                       names(),
+                     sep = " - ")
+  
+  data |>
+    filter(model_index %in% model_index_to_name_list) |>
+    mutate(model_name = model_index |>
+             as_factor() |>
+             fct_recode(!!!model_index_to_name_list) |>
+             fct_relevel(model_index_to_name_list |>
+                           names()),
+           model_index_name = model_index |>
+             as_factor() |>
+             fct_recode(!!!model_index_to_index_name_list) |>
+             fct_relevel(model_index_to_index_name_list |>
+                           names()))
+}
 
-plot_performance <- function(data, data_summary, metric) {
+plot_performance <- function(data, data_summary, metric){
   
   if (metric == "auc") {
     y_label <- "AUC"
@@ -67,47 +88,38 @@ plot_performance <- function(data, data_summary, metric) {
     ylim(0, 1)
 }
 
-get_delta_mean_performance_table <- function(data_summary,
-                                             model_index_base){
-  data_summary |>
-    group_by(statistic) |>
-    nest() |>
-    mutate(data = data |>
-             map(.f = \(x) x |>
-                   mutate(across(.cols = c(auc,
-                                           auc01,
-                                           ppv),
-                                 .fns = function(y){
-                                   base_performance <- x |>
-                                     filter(model_index == model_index_base) |>
-                                     pull(y)
-                                   
-                                   y - base_performance
-                                 },
-                                 .names = "{.col}_delta")))) |>
-    unnest(cols = data) |>
-    ungroup() |>
-    filter(model_index != model_index_base) |>
-    select(c(model_index,
-             model_name,
-             statistic,
-             ends_with("_delta"))) |>
-    arrange(model_index)
+get_delta_performance_table <- function(data){
+  data |>
+    left_join(y = data |>
+                select(!c(count_positive,
+                          peptide_count_positive)),
+              by = "peptide",
+              relationship = "many-to-many") |>
+    filter(model_index.x != model_index.y) |>
+    mutate(auc_delta = auc.x - auc.y,
+           auc01_delta = auc01.x - auc01.y,
+           ppv_delta = ppv.x - ppv.y)
 }
 
-get_delta_performance_count_sign_table <- function(data,
-                                                   model_index_base){
-  data |>
-    mutate(across(.cols = c(auc,
-                            auc01,
-                            ppv),
-                  .fns = \(x) x - (data |>
-                                     filter(model_index == model_index_base) |>
-                                     pull(x)),
-                  .names = "{.col}_delta")) |>
-    filter(model_index != model_index_base) |>
-    group_by(model_index,
-             model_name) |>
+get_delta_mean_performance_table <- function(data_summary){
+  data_summary |>
+    left_join(y = data_summary |>
+                select(!c(count_positive,
+                          statistic_count_positive)),
+              by = "statistic",
+              relationship = "many-to-many") |>
+    filter(model_index.x != model_index.y) |>
+    mutate(auc_delta = auc.x - auc.y,
+           auc01_delta = auc01.x - auc01.y,
+           ppv_delta = ppv.x - ppv.y)
+}
+
+get_delta_performance_count_sign_table <- function(data_delta){
+  data_delta |>
+    group_by(model_index.x,
+             model_name.x,
+             model_index.y,
+             model_name.y) |>
     summarise(across(.cols = c(auc_delta,
                                auc01_delta,
                                ppv_delta),
@@ -116,8 +128,10 @@ get_delta_performance_count_sign_table <- function(data,
                                  count_lesser = \(x) (x < 0) |>
                                    sum()),
                      .names = "{.col}.{.fn}")) |>
-    pivot_longer(cols = !c(model_index,
-                           model_name),
+    pivot_longer(cols = !c(model_index.x,
+                           model_name.x,
+                           model_index.y,
+                           model_name.y),
                  names_to = c(".value",
                               "condition"),
                  names_sep = "\\.") |>
@@ -127,183 +141,74 @@ get_delta_performance_count_sign_table <- function(data,
     rename_with(.fn = \(x) paste("count",
                                  x,
                                  sep = "_"),
-                .cols = ends_with("_delta"))
+                .cols = ends_with("_delta")) |>
+    arrange(model_index.x,
+            model_index.y,
+            condition)
 }
 
-subset_data <- function(data, model_index_to_name_list){
-  model_index_to_index_name_list <- model_index_to_name_list
-  model_index_to_index_name_list |>
-    names() <- str_c(model_index_to_name_list,
-                     model_index_to_name_list |>
-                       names(),
-                     sep = " - ")
+plot_delta_performance <- function(data_delta, data_summary_delta, metric){
   
-  data |>
-    filter(model_index %in% model_index_to_name_list) |>
-    mutate(model_name = model_index |>
-             as_factor() |>
-             fct_recode(!!!model_index_to_name_list) |>
-             fct_relevel(model_index_to_name_list |>
-                           names()),
-           model_index_name = model_index |>
-             as_factor() |>
-             fct_recode(!!!model_index_to_index_name_list) |>
-             fct_relevel(model_index_to_index_name_list |>
-                           names()))
+  metric <- str_c(metric,
+                  "delta",
+                  sep = "_")
+  
+  if (metric == "auc_delta") {
+    y_label <- "\u0394AUC"
+  } else if (metric == "auc01_delta") {
+    y_label <- "\u0394AUC 0.1"
+  } else if (metric == "ppv_delta") {
+    y_label <- "\u0394PPV"
+  }
+  
+  min_metric_delta <- c(data_delta |>
+                       pull(.data[[metric]]),
+                     data_summary_delta |>
+                       pull(.data[[metric]])) |>
+    min()
+  
+  max_metric_delta <- c(data_delta |>
+                       pull(.data[[metric]]),
+                     data_summary_delta |>
+                       pull(.data[[metric]])) |>
+    max()
+  
+  p1 <- data_delta |>
+    ggplot(mapping = aes(x = peptide_count_positive |>
+                           as_factor(),
+                         y = .data[[metric]],
+                         fill = model_index_name.y))+
+    geom_col(position = "dodge")+
+    facet_wrap(facets = vars(model_index_name.x))+
+    labs(x = "Peptide",
+         fill = "Model")+
+    ylim(min_metric_delta,
+         max_metric_delta)+
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
+  
+  p2 <- data_summary_delta |>
+    ggplot(mapping = aes(x = statistic_count_positive,
+                         y = .data[[metric]],
+                         fill = model_index_name.y))+
+    geom_col(position = "dodge")+
+    facet_wrap(facets = vars(model_index_name.x))+
+    labs(x = "Statistic",
+         y = y_label,
+         fill = "Model")+
+    ylim(min_metric_delta,
+         max_metric_delta)
+  
+  p2+
+    p1+
+    plot_layout(guides = "collect",
+                widths = c(0.35, 0.65))&
+    theme(legend.position = "top",
+          legend.justification = "left",
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 }
 
-model_index_to_name_list <- c("No dropout and no weighting" = "4",
-                              "Weighting only" = "2",
-                              "Dropout only" = "3",
-                              "Dropout and weighting" = "1")
-
-
-data_subset <- data |>
-  subset_data(model_index_to_name_list = model_index_to_name_list)
-
-data_summary_subset <- data_summary |>
-  subset_data(model_index_to_name_list = model_index_to_name_list)
-
-
-data_subset_delta <- data_subset |>
-  left_join(y = data_subset |>
-              select(!c(count_positive,
-                        peptide_count_positive)),
-            by = "peptide") |>
-  filter(model_index.x != model_index.y) |>
-  mutate(auc_delta = auc.y - auc.x,
-         auc01_delta = auc01.y - auc01.x,
-         ppv_delta = ppv.y - ppv.x)
-
-data_summary_subset_delta <- data_summary_subset |>
-  left_join(y = data_summary_subset |>
-              select(!c(count_positive,
-                        statistic_count_positive)),
-            by = "statistic") |>
-  filter(model_index.x != model_index.y) |>
-  mutate(auc_delta = auc.y - auc.x,
-         auc01_delta = auc01.y - auc01.x,
-         ppv_delta = ppv.y - ppv.x)
-
-data_count_sign <- data_subset_delta |>
-  group_by(model_index.x,
-           model_name.x,
-           model_index.y,
-           model_name.y) |>
-  summarise(across(.cols = c(auc_delta,
-                             auc01_delta,
-                             ppv_delta),
-                   .fns = list(count_greater = \(x) (x >= 0) |>
-                                 sum(),
-                               count_lesser = \(x) (x < 0) |>
-                                 sum()),
-                   .names = "{.col}.{.fn}")) |>
-  pivot_longer(cols = !c(model_index.x,
-                         model_name.x,
-                         model_index.y,
-                         model_name.y),
-               names_to = c(".value",
-                            "condition"),
-               names_sep = "\\.") |>
-  mutate(condition = if_else(condition = condition == "count_greater",
-                             true = "positive",
-                             false = "negative")) |>
-  rename_with(.fn = \(x) paste("count",
-                               x,
-                               sep = "_"),
-              .cols = ends_with("_delta")) |>
-  arrange(model_index.x,
-          model_index.y,
-          condition)
-
-data_subset_delta |>
-  ggplot(mapping = aes(x = peptide_count_positive |>
-                         as_factor(),
-                       y = auc_delta,
-                       fill = model_index_name.y))+
-  geom_col(position = "dodge")+
-  facet_wrap(facets = vars(model_index_name.x))+
-  labs(x = "Peptide",
-       fill = "Model")+
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-
-model_index_name_levels <- data_subset |> 
-  pull(model_index_name) |> 
-  levels()
-
-model_index_name_count <- model_index_name_levels |>
-  length()
-
-color_palette <- setNames(object = scales::hue_pal()(model_index_name_count),
-                          nm = model_index_name_levels)
-
-abe <- data_subset_delta |>
-  group_by(model_index.x,
-           model_name.x,
-           model_index_name.x) |>
-  nest() |>
-  left_join(y = data_summary_subset_delta |>
-              group_by(model_index.x,
-                       model_name.x,
-                       model_index_name.x) |>
-              nest(.key = "data_summary")) |>
-  mutate(plot = pmap(.l = list(model_index_name.x,
-                               data,
-                               data_summary),
-                     .f = \(x,
-                            y,
-                            z){
-                       min_auc_delta <- c(y |>
-                                           pull(auc_delta),
-                                         z |>
-                                           pull(auc_delta)) |>
-                         min()
-                       
-                       max_auc_delta <- c(y |>
-                                            pull(auc_delta),
-                                          z |>
-                                            pull(auc_delta)) |>
-                         max()
-                       
-                       p1 <- y |>
-                         ggplot(mapping = aes(x = peptide_count_positive |>
-                                                as_factor(),
-                                              y = auc_delta,
-                                              fill = model_index_name.y))+
-                         geom_col(position = "dodge")+
-                         scale_fill_manual(values = color_palette,
-                                           drop = FALSE)+
-                         labs(x = "Peptide",
-                              fill = "Model")+
-                         theme(axis.title.y = element_blank(),
-                               axis.text.y = element_blank(),
-                               axis.ticks.y = element_blank())+
-                         ylim(min_auc_delta, max_auc_delta)+
-                         labs(title = x)
-                       
-                       p2 <- z |>
-                         ggplot(mapping = aes(x = statistic_count_positive,
-                                              y = auc_delta,
-                                              fill = model_index_name.y))+
-                         geom_col(position = "dodge")+
-                         scale_fill_manual(values = color_palette,
-                                           drop = FALSE)+
-                         labs(x = "Statistic",
-                              fill = "Model")+
-                         ylim(min_auc_delta, max_auc_delta)
-                       
-                       p2+
-                         p1+
-                         plot_layout(widths = c(0.075, 0.925))
-                     }))
-
-(abe |> pull(plot) |> wrap_plots())+
-  plot_layout(guides = "collect")&
-  theme(legend.position = "top",
-        legend.justification = "left",
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" = "4",
                                                   "Weighting only" = "2",
@@ -357,25 +262,9 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                          "protrans_t5-xl-u50_sizes",
                          "esm1b_normalization_and_activation",
                          "tcr_bert_vs_esm1b",
-                         "tcr_bert_normalization_divisor"),
-                model_index_base = c(4,
-                                     1,
-                                     5,
-                                     5,
-                                     9,
-                                     5,
-                                     10,
-                                     5,
-                                     1,
-                                     5,
-                                     13,
-                                     10,
-                                     5,
-                                     5,
-                                     30)),
+                         "tcr_bert_normalization_divisor")),
       .f =  \(model_index_to_name_list,
-              name,
-              model_index_base){
+              name){
         
         # Subset data
         data_subset <- data |>
@@ -383,6 +272,33 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
         
         data_summary_subset <- data_summary |>
           subset_data(model_index_to_name_list = model_index_to_name_list)
+        
+        # Table with delta performance metrics
+        data_subset_delta <- get_delta_performance_table(data = data_subset)
+        
+        # Table with delta mean performance metrics
+        data_summary_subset_delta <- get_delta_mean_performance_table(data_summary = data_summary_subset)
+        
+        # Table where sign of deltas are counted
+        data_count_sign <- get_delta_performance_count_sign_table(data_delta = data_subset_delta)
+        
+        # Write tables to files
+        data_summary_subset_delta |>
+          select(model_index.x,
+                 model_name.x,
+                 model_index.y,
+                 model_name.y,
+                 statistic,
+                 auc_delta,
+                 auc01_delta,
+                 ppv_delta) |>
+          arrange(model_index.x,
+                  model_index.y,
+                  statistic) |>
+          write_tsv(file = glue('../results/s06_table__{name}__delta_mean_performance.tsv'))
+        
+        data_count_sign |>
+          write_tsv(file = glue('../results/s06_table__{name}__delta_performance_count_sign.tsv'))
         
         # Plotting
         walk(.x = c("auc",
@@ -399,19 +315,16 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                       width = 30,
                       height = 20,
                       units = "cm")
+               
+               p <- plot_delta_performance(data_delta = data_subset_delta,
+                                           data_summary_delta = data_summary_subset_delta,
+                                           metric = metric)
+               
+               ggsave(filename = glue('s06_plot__{name}__{metric}__delta.svg'),
+                      plot = p,
+                      path = "../results",
+                      width = 30,
+                      height = 20,
+                      units = "cm")
              })
-        
-        # Table with delta mean performance metrics
-        delta_mean_performance_table <- get_delta_mean_performance_table(data_summary = data_summary_subset,
-                                                                         model_index_base = model_index_base)
-        
-        delta_mean_performance_table |>
-          write_tsv(file = glue('../results/s06_table__{name}__delta_mean_performance.tsv'))
-        
-        # Table where sign of deltas are counted
-        delta_performance_count_sign_table <- get_delta_performance_count_sign_table(data = data_subset,
-                                                                                     model_index_base = model_index_base)
-        
-        delta_performance_count_sign_table |>
-          write_tsv(file = glue('../results/s06_table__{name}__delta_performance_count_sign.tsv'))
       })

@@ -1,6 +1,6 @@
 # ESM1b for both TCR and peptide
 default:
-    model_index: '12'
+    model_index: '012'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

@@ -1,6 +1,6 @@
 # ESM2 - 36 hidden layers
 default:
-    model_index: '14'
+    model_index: '014'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

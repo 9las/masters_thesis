@@ -1,6 +1,6 @@
 # No dropout
 default:
-    model_index: '02'
+    model_index: '002'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0

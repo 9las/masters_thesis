@@ -3,7 +3,7 @@
 # Normalisation divisor of 5 for TCR
 # Twice the amount of convolution filters and hidden units
 default:
-    model_index: '35'
+    model_index: '035'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

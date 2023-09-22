@@ -1,7 +1,7 @@
 # ESM1b + TCR-Bert
 # Normalisation divisor of 60 for CDR3
 default:
-    model_index: '31'
+    model_index: '031'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

@@ -1,7 +1,7 @@
 # ESM1b with feed forward model architecture
 # No dropout
 default:
-    model_index: '09'
+    model_index: '009'
     model_architecture_name: ff_CDR123
     patience: 100
     dropout_rate: 0

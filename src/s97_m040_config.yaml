@@ -2,7 +2,7 @@
 # Use sigmoid activation function for CDRs in convolution
 # Normalisation divisor of 10 for TCR
 default:
-    model_index: '40'
+    model_index: '040'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     start_from_epoch: 0

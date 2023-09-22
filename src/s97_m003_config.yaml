@@ -1,6 +1,6 @@
 # No weighting
 default:
-    model_index: '03'
+    model_index: '003'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

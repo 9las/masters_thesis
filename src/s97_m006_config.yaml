@@ -1,6 +1,6 @@
 # ESM1b with twice the amount of convolution filters and hidden units
 default:
-    model_index: '06'
+    model_index: '006'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

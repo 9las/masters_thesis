@@ -1,6 +1,6 @@
 # This config uses the original paramters from Mathias Jensen
 default:
-    model_index: '01'
+    model_index: '001'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

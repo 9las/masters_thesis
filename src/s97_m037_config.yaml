@@ -1,7 +1,7 @@
 # ESM1b
 # Normalisation divisor of 10 for TCR
 default:
-    model_index: '37'
+    model_index: '037'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     start_from_epoch: 0

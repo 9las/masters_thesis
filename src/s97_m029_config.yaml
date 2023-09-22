@@ -3,7 +3,7 @@
 # Normalisation divisor of 1 for TCR
 # Clipping TCR to be between -1 and 1
 default:
-    model_index: '29'
+    model_index: '029'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

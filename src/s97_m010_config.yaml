@@ -1,7 +1,7 @@
 # Protrans T5-XL-U50
 # Normalisation divisor of 20 for TCR
 default:
-    model_index: '10'
+    model_index: '010'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     dropout_rate: 0.6

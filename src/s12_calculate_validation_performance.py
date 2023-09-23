@@ -27,11 +27,11 @@ def get_parameter(model_index, parameter):
     return tcr_normalization_divisor
 
 # Load data
-file_path_iterator = glob.glob(pathname = '../data/s11_m??_t?v?_predictions_on_validation.tsv')
+file_path_iterator = glob.glob(pathname = '../data/s11_m???_t?v?_predictions_on_validation.tsv')
 
 df_list = []
 for file_path in file_path_iterator:
-    result = re.search(pattern = r'../data/s11_m(\d{2})_t(\d)v(\d)_predictions_on_validation.tsv',
+    result = re.search(pattern = r'../data/s11_m(\d{3})_t(\d)v(\d)_predictions_on_validation.tsv',
                        string = file_path)
 
     model_index_padded = result.group(1)

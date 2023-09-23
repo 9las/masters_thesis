@@ -91,7 +91,7 @@ pwalk(.l = list(model_index = data |>
              data,
              data_max_auc01) {
         model_index_padded <- model_index |>
-          str_pad(width = 2,
+          str_pad(width = 3,
                   pad = 0)
         walk(.x = c("auc",
                     "auc01",

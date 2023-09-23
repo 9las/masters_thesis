@@ -10,7 +10,7 @@ config_type_tuple = ('model',
                      'tcr',
                      'peptide')
 
-config_glob_path_tuple = ('s97_m??_config.yaml',
+config_glob_path_tuple = ('s97_m???_config.yaml',
                           's97_et??_config.yaml',
                           's97_ep??_config.yaml')
 

@@ -59,6 +59,61 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__ppv.svg'),
        height = 20,
        units = "cm")
 
+
+
+# BLOSUM50_20aa
+data_filtered <- data |>
+  filter(model_index %in% c(1, 27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89))
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__blosum50_20aa__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc01,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__blosum50_20aa__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = ppv,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__blosum50_20aa__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+
 # ESM1b
 data_filtered <- data |>
   filter(model_index %in% c(5, 36, 37 ,38, 42, 43, 44, 45, 17, 18, 39, 40, 46, 47, 48, 49, 50, 51, 52, 53 ,54))

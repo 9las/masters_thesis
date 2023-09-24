@@ -61,7 +61,7 @@ plot_training_history <- function(data,
 
 data <- data |>
   mutate(model_index = path |>
-           str_extract(pattern = "(?<=_m)\\d{2}(?=_)") |>
+           str_extract(pattern = "(?<=_m)\\d{3}(?=_)") |>
            str_remove(pattern = "^0+") |>
            as.numeric(),
          test_set_index = path |>

@@ -81,12 +81,6 @@ data = pd.read_csv(filepath_or_buffer = os.path.join('../data/raw',
                               'partition',
                               'original_index'])
 
-# Get validation data
-data = (data
-        .query(expr = 'partition == @v')
-        .drop(labels = 'partition',
-              axis = 1))
-
 # Get dataframe with unique encoded peptides
 if embedder_source_peptide == 'in-house':
 
@@ -184,6 +178,13 @@ if model_architecture_name == 'ff_CDR123':
     df_tcrs = (df_tcrs
                .applymap(func = lambda x: np.mean(a = x,
                                                   axis = 0)))
+
+# Get validation data
+data = (data
+        .query(expr = 'partition == @v')
+        .drop(labels = 'partition',
+              axis = 1))
+
 # Join unique encoded sequences onto the data set
 df_validation = (data
                  .filter(items = ['peptide',

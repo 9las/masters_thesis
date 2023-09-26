@@ -1,6 +1,5 @@
 # ESM2 - 33 hidden layers
 # Normalisation divisor of 70 for TCR
-# Sigmoid activation function for TCR
 default:
     model_index: '108'
     model_architecture_name: CNN_CDR123_global_max
@@ -34,4 +33,4 @@ default:
     hidden_units_count: 64
     mixed_precision: False
     pep_conv_activation: relu
-    cdr_conv_activation: sigmoid
+    cdr_conv_activation: relu

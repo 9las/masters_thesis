@@ -219,3 +219,55 @@ ggsave(filename = glue('s13_plot__normalisation__prottrans_t5_xl_u50__ppv.svg'),
        width = 30,
        height = 20,
        units = "cm")
+
+# ESM2 t33
+data_filtered <- data |>
+  filter(model_index %in% c(13, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 106, 107, 108))
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm2_t33_650M_UR50D__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc01,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm2_t33_650M_UR50D__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = ppv,
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm2_t33_650M_UR50D__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")

@@ -1,9 +1,9 @@
 # ESM1b
 # Use sigmoid activation function for CDRs in convolution
-# Normalisation divisor of 5 for TCR
+# Normalisation divisor of 1 for TCR
 # Twice the amount of convolution filters and hidden units
 default:
-    model_index: '035'
+    model_index: '111'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
     start_from_epoch: 500
@@ -28,13 +28,11 @@ default:
     cdr3_clip_min: null
     cdr3_clip_max: null
     peptide_normalization_divisor: 5
-    tcr_normalization_divisor: 5
-    cdr3_normalization_divisor: 5
+    tcr_normalization_divisor: 1
+    cdr3_normalization_divisor: 1
     learning_rate: 0.001
     convolution_filters_count: 32
     hidden_units_count: 128
     mixed_precision: False
     pep_conv_activation: relu
-    cdr_conv_activation: sigmoid
-    full_training: False
-    short_training: True
+    cdr_conv_activation: relu

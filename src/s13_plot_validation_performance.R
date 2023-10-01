@@ -9,20 +9,20 @@ data <- read_tsv(file = "../data/s12_validation_performance_summary.tsv")
 data <- data |>
   mutate(test_validation_partition = str_glue("t{test_partition}v{validation_partition}"))
 
-# ESM1b 2X (sigmoid)
-
+# ESM1b 2X
 data_filtered <- data |>
-  filter(model_index %in% c(19, 25, 34, 35))
+  filter(model_index %in% c(25, 35, 112:120))
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = auc,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x__auc.svg'),
        plot = p,
        path = "../results",
        width = 30,
@@ -30,14 +30,15 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc.svg'),
        units = "cm")
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = auc01,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc01.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x__auc01.svg'),
        plot = p,
        path = "../results",
        width = 30,
@@ -45,25 +46,25 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__auc01.svg'),
        units = "cm")
 
 p <- data_filtered |>
-  ggplot(mapping = aes(x = tcr_normalization_divisor,
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
                        y = ppv,
-                       color = test_validation_partition,
-                       group = test_validation_partition)) +
-  geom_line()+
-  geom_point()
+                       color = cdr_conv_activation)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
 
-ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_sigmoid__ppv.svg'),
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x__ppv.svg'),
        plot = p,
        path = "../results",
        width = 30,
        height = 20,
        units = "cm")
-
 
 
 # BLOSUM50_20aa
 data_filtered <- data |>
-  filter(model_index %in% c(1, 27, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89))
+  filter(model_index %in% c(1, 27, 75:89))
 
 p <- data_filtered |>
   ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
@@ -116,7 +117,7 @@ ggsave(filename = glue('s13_plot__normalisation__blosum50_20aa__ppv.svg'),
 
 # ESM1b
 data_filtered <- data |>
-  filter(model_index %in% c(5, 36, 37 ,38, 42, 43, 44, 45, 17, 18, 39, 40, 46, 47, 48, 49, 50, 51, 52, 53 ,54))
+  filter(model_index %in% c(5, 17:18, 36:40, 42:54))
 
 p <- data_filtered |>
   ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
@@ -170,7 +171,7 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b__ppv.svg'),
 
 # Prottrans
 data_filtered <- data |>
-  filter(model_index %in% c(10, 21, 26, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71))
+  filter(model_index %in% c(10, 21, 26, 55:71))
 
 p <- data_filtered |>
   ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
@@ -222,7 +223,7 @@ ggsave(filename = glue('s13_plot__normalisation__prottrans_t5_xl_u50__ppv.svg'),
 
 # ESM2 t33
 data_filtered <- data |>
-  filter(model_index %in% c(13, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 106, 107, 108))
+  filter(model_index %in% c(13, 92:108))
 
 p <- data_filtered |>
   ggplot(mapping = aes(x = factor(tcr_normalization_divisor),

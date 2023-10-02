@@ -232,7 +232,7 @@ pwalk(.l = list(model_index_to_name_list = list(c("No dropout and no weighting" 
                                                 c("ESM1b - TCR only" = "5",
                                                   "ESM1b - both" = "12"),
                                                 c("BLOSUM50" = "1",
-                                                  "ESM1b" = "35",
+                                                  "ESM1b" = "122",
                                                   "Protrans T5-XL-U50" = "69",
                                                   "ESM2" = "103"),
                                                 c("ESM1b" = "5",

@@ -61,6 +61,55 @@ ggsave(filename = glue('s13_plot__normalisation__esm1b_2x__ppv.svg'),
        height = 20,
        units = "cm")
 
+# ESM1b 2X - half learning rate
+data_filtered <- data |>
+  filter(model_index %in% c(121:128))
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_half_learning_rate__auc.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = auc01)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_half_learning_rate__auc01.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
+p <- data_filtered |>
+  ggplot(mapping = aes(x = factor(tcr_normalization_divisor),
+                       y = ppv)) +
+  geom_boxplot()+
+  stat_summary(fun=mean,
+               geom="point",
+               shape = "cross")
+
+ggsave(filename = glue('s13_plot__normalisation__esm1b_2x_half_learning_rate__ppv.svg'),
+       plot = p,
+       path = "../results",
+       width = 30,
+       height = 20,
+       units = "cm")
+
 
 # BLOSUM50_20aa
 data_filtered <- data |>

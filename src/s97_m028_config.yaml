@@ -6,6 +6,7 @@ default:
     model_index: '028'
     model_architecture_name: CNN_CDR123_global_max
     patience: 100
+    start_from_epoch: 0
     dropout_rate: 0.6
     epochs: 1500
     batch_size: 64

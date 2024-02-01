@@ -22,9 +22,9 @@ def ppv(y_true, y_score):
 def get_parameter(model_index, parameter):
     config_filename_model = 's97_m{}_config.yaml'.format(model_index)
     config_model = s99_project_functions.load_config(config_filename_model)
-    tcr_normalization_divisor = config_model['default'][parameter]
+    parameter_value = config_model['default'][parameter]
 
-    return tcr_normalization_divisor
+    return parameter_value
 
 # Load data
 file_path_iterator = glob.glob(pathname = '../data/s11_m???_t?v?_predictions_on_validation.tsv')
@@ -33,6 +33,8 @@ df_list = []
 for file_path in file_path_iterator:
     result = re.search(pattern = r'../data/s11_m(\d{3})_t(\d)v(\d)_predictions_on_validation.tsv',
                        string = file_path)
+
+    print('m:', result.group(1), 't:', result.group(2), 'v:', result.group(3))
 
     model_index_padded = result.group(1)
 
@@ -44,7 +46,13 @@ for file_path in file_path_iterator:
                     tcr_normalization_divisor = get_parameter(model_index = model_index_padded,
                                                               parameter = 'tcr_normalization_divisor'),
                     cdr_conv_activation = get_parameter(model_index = model_index_padded,
-                                                        parameter = 'cdr_conv_activation')))
+                                                        parameter = 'cdr_conv_activation'),
+                    dropout_rate = get_parameter(model_index = model_index_padded,
+                                                 parameter = 'dropout_rate'),
+                    hidden_units_count = get_parameter(model_index = model_index_padded,
+                                                       parameter = 'hidden_units_count'),
+                    learning_rate = get_parameter(model_index = model_index_padded,
+                                                  parameter = 'learning_rate')))
 
     df_list.append(df)
 
@@ -53,12 +61,16 @@ data = pd.concat(objs = df_list,
 
 # Create table with performance metrics per peptide
 data = (data
-        .groupby(['model_index',
-                  'tcr_normalization_divisor',
-                  'cdr_conv_activation',
-                  'test_partition',
-                  'validation_partition',
-                  'peptide'])
+        .groupby(by = ['model_index',
+                       'tcr_normalization_divisor',
+                       'cdr_conv_activation',
+                       'dropout_rate',
+                       'hidden_units_count',
+                       'learning_rate',
+                       'test_partition',
+                       'validation_partition',
+                       'peptide'],
+                 dropna = False)
         .apply(func = lambda x:  pd.Series(data = [x['binder'].sum(),
                                                    roc_auc_score(y_true = x['binder'],
                                                                  y_score = x['prediction']),
@@ -83,11 +95,15 @@ data = (data
 
 # Create table with mean peformance metrics
 data_summary = (data
-                .groupby(['model_index',
-                          'tcr_normalization_divisor',
-                          'cdr_conv_activation',
-                          'test_partition',
-                          'validation_partition'])
+                .groupby(by = ['model_index',
+                               'tcr_normalization_divisor',
+                               'cdr_conv_activation',
+                               'dropout_rate',
+                               'hidden_units_count',
+                               'learning_rate',
+                               'test_partition',
+                               'validation_partition'],
+                         dropna = False)
                 .agg(func = {'count_positive': 'sum',
                              'auc': 'mean',
                              'auc01': 'mean',

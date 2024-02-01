@@ -30,6 +30,7 @@ config_model = s99_project_functions.load_config(config_filename_model)
 
 embedder_index_tcr = config_model['default']['embedder_index_tcr']
 embedder_index_peptide = config_model['default']['embedder_index_peptide']
+embedder_index_cdr3 = config_model['default']['embedder_index_cdr3']
 
 config_filename_tcr = 's97_et{}_config.yaml'.format(embedder_index_tcr)
 config_filename_peptide = 's97_ep{}_config.yaml'.format(embedder_index_peptide)
@@ -42,21 +43,30 @@ data_filename = config_main['default']['data_filename']
 seed = config_main['default']['seed']
 
 model_index = config_model['default']['model_index']
-patience = config_model['default']['patience'] #Patience for Early Stopping
-dropout_rate = config_model['default']['dropout_rate'] #Dropout Rate
-epochs = config_model['default']['epochs'] #Number of epochs in the training
-batch_size = config_model['default']['batch_size'] #Number of elements in each batch
 padding_value_peptide = config_model['default']['padding_value_peptide']
 padding_side_peptide = config_model['default']['padding_side_peptide']
 truncating_side_peptide = config_model['default']['truncating_side_peptide']
 padding_value_tcr = config_model['default']['padding_value_tcr']
 padding_side_tcr = config_model['default']['padding_side_tcr']
 truncating_side_tcr = config_model['default']['truncating_side_tcr']
-weight_peptides = config_model['default']['weight_peptides']
-model_architecture_name = config_model['default']['model_architecture_name']
-peptide_selection = config_model['default']['peptide_selection']
 peptide_normalization_divisor = config_model['default']['peptide_normalization_divisor']
 tcr_normalization_divisor = config_model['default']['tcr_normalization_divisor']
+cdr3_normalization_divisor = config_model['default']['cdr3_normalization_divisor']
+model_architecture_name = config_model['default']['model_architecture_name']
+tcr_clip_min = config_model['default']['tcr_clip_min']
+tcr_clip_max = config_model['default']['tcr_clip_max']
+peptide_clip_min = config_model['default']['peptide_clip_min']
+peptide_clip_max = config_model['default']['peptide_clip_max']
+cdr3_clip_min = config_model['default']['cdr3_clip_min']
+cdr3_clip_max = config_model['default']['cdr3_clip_max']
+
+patience = config_model['default']['patience'] #Patience for Early Stopping
+start_from_epoch = config_model['default']['start_from_epoch']
+dropout_rate = config_model['default']['dropout_rate'] #Dropout Rate
+epochs = config_model['default']['epochs'] #Number of epochs in the training
+batch_size = config_model['default']['batch_size'] #Number of elements in each batch
+weight_peptides = config_model['default']['weight_peptides']
+peptide_selection = config_model['default']['peptide_selection']
 learning_rate = config_model['default']['learning_rate']
 convolution_filters_count = config_model['default']['convolution_filters_count']
 hidden_units_count = config_model['default']['hidden_units_count']
@@ -72,6 +82,7 @@ embedder_source_peptide = config_peptide['default']['embedder_source_peptide']
 
 # Set random seed
 keras.utils.set_random_seed(seed)
+tf.config.experimental.enable_op_determinism()
 
 # Set up keras to use mixed precision if on GPU
 if tf.config.list_physical_devices('GPU') and mixed_precision:
@@ -115,6 +126,21 @@ else:
     df_tcrs = pd.read_pickle(filepath_or_buffer = ('../data/s01_et{}_embedding.pkl'
                                                    .format(embedder_index_tcr)))
 
+if embedder_index_cdr3:
+# Replace CDR3 embeddings
+    df_cdr3 = pd.read_pickle(filepath_or_buffer = ('../data/s01_e3c{}_embedding.pkl'
+                                                   .format(embedder_index_cdr3)))
+
+    df_tcrs = (df_tcrs
+               .drop(labels = ['a3_encoded',
+                               'b3_encoded'],
+                     axis = 'columns')
+               .merge(right = df_cdr3,
+                      how = 'left',
+                      on = 'original_index'))
+
+    del df_cdr3
+
 # Pad unique peptides and CDRs
 df_peptides = (s99_project_functions
                .pad_unique_peptides(df = df_peptides,
@@ -148,8 +174,42 @@ df_peptides = (df_peptides
                .drop(labels = 'count',
                      axis = 1))
 
+# Clip embeddings to a given interval
+if tcr_clip_min is not None or tcr_clip_max is not None:
+    df_tcrs[['a1_encoded',
+             'a2_encoded',
+             'b1_encoded',
+             'b2_encoded']] = (df_tcrs[['a1_encoded',
+                                        'a2_encoded',
+                                        'b1_encoded',
+                                        'b2_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max)))
+
+if cdr3_clip_min is not None or cdr3_clip_max is not None:
+    df_tcrs[['a3_encoded',
+             'b3_encoded']] = (df_tcrs[['a3_encoded',
+                                        'b3_encoded']]
+                               .applymap(func = lambda x: np.clip(a = x,
+                                                                  a_min = tcr_clip_min,
+                                                                  a_max = tcr_clip_max)))
+
+if peptide_clip_min is not None or peptide_clip_max is not None:
+    df_peptides['peptide_encoded'] = (df_peptides['peptide_encoded']
+                                      .map(arg = lambda x: np.clip(a = x,
+                                                                   a_min = peptide_clip_min,
+                                                                   a_max = peptide_clip_max)))
+
 # Normalise embeddings
-df_tcrs /= tcr_normalization_divisor
+df_tcrs[['a1_encoded',
+         'a2_encoded',
+         'b1_encoded',
+         'b2_encoded']] /= tcr_normalization_divisor
+
+df_tcrs[['a3_encoded',
+         'b3_encoded']] /= cdr3_normalization_divisor
+
 df_peptides['peptide_encoded'] /= peptide_normalization_divisor
 
 if model_architecture_name == 'ff_CDR123':
@@ -207,7 +267,8 @@ with tf.device("CPU"):
 del df_train
 
 tf_train = (tf_train
-            .shuffle(buffer_size = len(tf_train))
+            .shuffle(buffer_size = len(tf_train),
+                     seed = seed)
             .batch(batch_size = batch_size)
             .prefetch(buffer_size = tf.data.AUTOTUNE))
 
@@ -251,14 +312,14 @@ tf_validation = (tf_validation
 model_architecture = getattr(s98_models, model_architecture_name)
 peptide_shape = tuple(tf_train.element_spec[0]['pep'].shape[1:])
 
-if model_architecture_name == 'CNN_CDR123_global_max':
-    a1_shape = tuple(tf_train.element_spec[0]['a1'].shape[1:])
-    a2_shape = tuple(tf_train.element_spec[0]['a2'].shape[1:])
-    a3_shape = tuple(tf_train.element_spec[0]['a3'].shape[1:])
-    b1_shape = tuple(tf_train.element_spec[0]['b1'].shape[1:])
-    b2_shape = tuple(tf_train.element_spec[0]['b2'].shape[1:])
-    b3_shape = tuple(tf_train.element_spec[0]['b3'].shape[1:])
+a1_shape = tuple(tf_train.element_spec[0]['a1'].shape[1:])
+a2_shape = tuple(tf_train.element_spec[0]['a2'].shape[1:])
+a3_shape = tuple(tf_train.element_spec[0]['a3'].shape[1:])
+b1_shape = tuple(tf_train.element_spec[0]['b1'].shape[1:])
+b2_shape = tuple(tf_train.element_spec[0]['b2'].shape[1:])
+b3_shape = tuple(tf_train.element_spec[0]['b3'].shape[1:])
 
+if model_architecture_name == 'CNN_CDR123_global_max':
     model_architecture = model_architecture(dropout_rate = dropout_rate,
                                             seed = seed,
                                             peptide_shape = peptide_shape,
@@ -275,12 +336,15 @@ if model_architecture_name == 'CNN_CDR123_global_max':
                                             cdr_conv_activation = cdr_conv_activation)
 
 elif model_architecture_name == 'ff_CDR123':
-    cdr_shape = a1_train.shape[1:]
-
     model_architecture = model_architecture(dropout_rate = dropout_rate,
                                             seed = seed,
                                             peptide_shape = peptide_shape,
-                                            cdr_shape = cdr_shape,
+                                            a1_shape = a1_shape,
+                                            a2_shape = a2_shape,
+                                            a3_shape = a3_shape,
+                                            b1_shape = b1_shape,
+                                            b2_shape = b2_shape,
+                                            b3_shape = b3_shape,
                                             hidden_units_count = hidden_units_count,
                                             mixed_precision = mixed_precision)
 
@@ -305,7 +369,8 @@ history = model_architecture.fit(x = tf_train,
                                  validation_data = tf_validation,
                                  callbacks = [keras.callbacks.EarlyStopping(monitor = 'val_auc01',
                                                                             mode = 'max',
-                                                                            patience = patience),
+                                                                            patience = patience,
+                                                                            start_from_epoch = start_from_epoch),
                                               keras.callbacks.ModelCheckpoint(filepath = '../checkpoint/s02_m{}_t{}v{}'.format(model_index,t,v),
                                                                               monitor = 'val_auc01',
                                                                               mode = 'max',

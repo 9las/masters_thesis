@@ -2,9 +2,20 @@
 library(tidyverse)
 library(fs)
 library(glue)
+library(argparser)
+
+parser <- arg_parser(description = "Plot training history")
+parser <- parser |>
+  add_argument(arg = "model_index",
+               help = "Index for model to plot training history for")
+
+args <- parse_args(parser)
+model_index <- args$model_index
+
+theme_set(theme_gray(base_size = 9))
 
 file_paths <- dir_ls(path = "../results",
-                     regexp = "s02_m\\d{2}_training_history_t\\d{1}v\\d{1}.tsv")
+                     glob = glue('../results/s02_m{model_index}_training_history_t?v?.tsv'))
 
 data <- read_tsv(file = file_paths,
                  id = "path")
@@ -25,7 +36,8 @@ plot_training_history <- function(data,
     select(epoch,
            ends_with(metric),
            test_set_index,
-           validation_set_index) |>
+           validation_set_index,
+           test_validation_set_index) |>
     pivot_longer(cols = ends_with(metric),
                  names_to = "data_set",
                  values_to = metric) |>
@@ -39,26 +51,27 @@ plot_training_history <- function(data,
     geom_vline(mapping = aes(xintercept = epoch),
                data = data_max_auc01)+
     geom_line()+
-    facet_wrap(facets = vars(test_set_index,
-                             validation_set_index))+
+    facet_wrap(facets = vars(test_validation_set_index),
+               ncol = 4)+
     labs(x = "Epoch",
          y = y_label,
-         color = "Data set",
-         title = glue('Model {model_index}'))+
+         color = "Set")+
     theme(legend.position = "top",
           legend.justification = "left",
-          plot.title.position = "plot")
+          strip.text.x = element_blank(),
+          plot.margin = margin(t = 0.3, r = 0.3, b = 0.3, l = 0.3, "cm"))
 }
 
 data <- data |>
   mutate(model_index = path |>
-           str_extract(pattern = "(?<=_m)\\d{2}(?=_)") |>
+           str_extract(pattern = "(?<=_m)\\d{3}(?=_)") |>
            str_remove(pattern = "^0+") |>
            as.numeric(),
          test_set_index = path |>
            str_extract(pattern = "(?<=_t)\\d{1}"),
          validation_set_index = path |>
            str_extract(pattern = "(?<=v)\\d{1}"),
+         test_validation_set_index = glue('t{test_set_index}v{validation_set_index}'),
          .before = path) |>
   select(!path) |>
   group_by(model_index) |>
@@ -70,6 +83,7 @@ data <- data |>
                  slice_max(val_auc01) |>
                  select(test_set_index,
                         validation_set_index,
+                        test_validation_set_index,
                         epoch)))
 
 pwalk(.l = list(model_index = data |>
@@ -82,7 +96,7 @@ pwalk(.l = list(model_index = data |>
              data,
              data_max_auc01) {
         model_index_padded <- model_index |>
-          str_pad(width = 2,
+          str_pad(width = 3,
                   pad = 0)
         walk(.x = c("auc",
                     "auc01",
@@ -92,6 +106,17 @@ pwalk(.l = list(model_index = data |>
                                           data_max_auc01 = data_max_auc01,
                                           model_index = model_index,
                                           metric = metric)
+               
+               ggsave(filename = glue('s03_m{model_index_padded}_plot__training_history__{metric}.png'),
+                      plot = p,
+                      path = "../results",
+                      width = 16,
+                      height = 10,
+                      units = "cm",
+                      dpi = 600)
+               
+               p <- p+
+                 theme_gray(base_size = 11)
                
                ggsave(filename = glue('s03_m{model_index_padded}_plot__training_history__{metric}.svg'),
                       plot = p,

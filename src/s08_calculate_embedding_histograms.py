@@ -31,14 +31,19 @@ histogram_df = pd.DataFrame()
 # Parameters
 embedder_index_tcr_max = 5
 embedder_index_peptide_max = 2
+embedder_index_cdr3_max = 1
 embedder_index_tcr_tuple = tuple(range(1,
                                        embedder_index_tcr_max + 1))
 embedder_index_peptide_tuple = tuple(range(1,
                                            embedder_index_peptide_max + 1))
-tcr_bin_step_size_tuple = (1, 0.1, 0.1, 0.1, 0.1)
-peptide_bin_step_size_tuple = (1, 0.1)
 
-# Calculate histograms for CDRs
+embedder_index_cdr3_tuple = tuple(range(1,
+                                       embedder_index_cdr3_max + 1))
+tcr_bin_step_size_tuple = (1, 0.1, 0.02, 0.1, 0.1)
+peptide_bin_step_size_tuple = (1, 0.1)
+cdr3_bin_step_size_tuple = (0.1,)
+
+# Calculate histograms for TCRs
 for i in range(len(embedder_index_tcr_tuple)):
     embedder_index_tcr = embedder_index_tcr_tuple[i]
     embedder_index_tcr_padded = str(embedder_index_tcr).zfill(2)
@@ -80,10 +85,49 @@ for i in range(len(embedder_index_tcr_tuple)):
                  .sum())
 
     histogram_df = pd.concat([histogram_df,
-                              pd.DataFrame({'sequence_type': 'cdr',
+                              pd.DataFrame({'sequence_type': 'tcr',
                                             'embedder_index': embedder_index_tcr,
                                             'embedder_source': embedder_source_tcr,
                                             'embedder_name': embedder_name_tcr,
+                                            'bin_edge': bin_edges[:-1],
+                                            'count': embedding})])
+
+# Calculate histograms for CDR3s
+for i in range(len(embedder_index_cdr3_tuple)):
+    embedder_index_cdr3 = embedder_index_cdr3_tuple[i]
+    embedder_index_cdr3_padded = str(embedder_index_cdr3).zfill(2)
+    cdr3_bin_step_size = cdr3_bin_step_size_tuple[i]
+    config_cdr3 = s99_project_functions.load_config('s97_e3c{}_config.yaml'.format(embedder_index_cdr3_padded))
+    embedder_name_cdr3 = config_cdr3['default']['embedder_name_cdr3']
+    embedder_source_cdr3 = config_cdr3['default']['embedder_source_cdr3']
+
+    embedding = pd.read_pickle(filepath_or_buffer = '../data/s01_e3c{}_embedding.pkl'.format(embedder_index_cdr3_padded))
+    embedding_min = embedding.applymap(func = lambda x: np.min(x)).min(axis = None)
+    embedding_max = embedding.applymap(func = lambda x: np.max(x)).max(axis = None)
+    bin_edges = np.arange(start = embedding_min,
+                          stop = embedding_max + cdr3_bin_step_size,
+                          step = cdr3_bin_step_size)
+
+    embedding = (embedding
+                 .applymap(lambda x: np.histogram(a = x,
+                                                  bins = bin_edges)[0])
+                 .merge(right = orginal_index_counts_df,
+                        how = 'left',
+                        on = 'original_index'))
+
+    embedding = (embedding
+                 .drop(labels = 'count',
+                       axis = 1)
+                 .multiply(other = embedding['count'],
+                           axis = 'index')
+                 .sum()
+                 .sum())
+
+    histogram_df = pd.concat([histogram_df,
+                              pd.DataFrame({'sequence_type': 'cdr3',
+                                            'embedder_index': embedder_index_cdr3,
+                                            'embedder_source': embedder_source_cdr3,
+                                            'embedder_name': embedder_name_cdr3,
                                             'bin_edge': bin_edges[:-1],
                                             'count': embedding})])
 

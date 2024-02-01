@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import argparse
-from transformers import AutoTokenizer, TFAutoModel
+from transformers import AutoTokenizer, TFAutoModel, AutoModel
 import datasets
 import s99_project_functions
 import os
@@ -21,6 +21,7 @@ config_main = s99_project_functions.load_config('s97_main_config.yaml')
 embedder_name_tcr = config_tcr['default']['embedder_name_tcr']
 embedder_index_tcr = config_tcr['default']['embedder_index_tcr']
 embedder_batch_size_tcr = config_tcr['default']['embedder_batch_size_tcr']
+embedder_backend_tcr = config_tcr['default']['embedder_backend_tcr']
 data_filename = config_main['default']['data_filename']
 
 # Read data
@@ -47,6 +48,12 @@ data = datasets.load_dataset(path = 'csv',
                              features = features)
 
 # Define functions
+def split_amino_acids(example):
+    example['TRA_aa'] = ' '.join(example['TRA_aa'])
+    example['TRB_aa'] = ' '.join(example['TRB_aa'])
+
+    return example
+
 def add_embeddings(batch):
     embeddings_dict = dict()
 
@@ -61,7 +68,7 @@ def add_embeddings(batch):
         tcr_encoded_name = tcr_encoded_name_tuple[i]
 
         embeddings_dict[tcr_encoded_name] = model(**tokenizer(text = batch[tcr_name],
-                                                              return_tensors = 'tf',
+                                                              return_tensors = embedder_backend_tcr,
                                                               padding = 'longest'))
 
         embeddings_dict[tcr_encoded_name] = embeddings_dict[tcr_encoded_name]['last_hidden_state']
@@ -70,14 +77,28 @@ def add_embeddings(batch):
 
 # Get the embedder
 tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
-model = TFAutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
+
+if embedder_backend_tcr  == 'tf':
+    model = TFAutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
+elif embedder_backend_tcr == 'pt':
+    model = AutoModel.from_pretrained(pretrained_model_name_or_path = embedder_name_tcr)
 
 # Do the embedding for positive binders - all unique TCRs
 data = (data
-        .filter(lambda x: x['binder'] is True)
+        .filter(lambda x: x['binder'] is True)['train']
+        .select(range(10))
+        .map(split_amino_acids)
         .map(add_embeddings,
-                batched = True,
-                batch_size = embedder_batch_size_tcr))
+             batched = True,
+             batch_size = embedder_batch_size_tcr))
+
+
+data = (data
+        .filter(lambda x: x['binder'] is True)
+        .map(split_amino_acids)
+        .map(add_embeddings,
+             batched = True,
+             batch_size = embedder_batch_size_tcr))
 
 # Make dataset into a pandas dataframe
 data.set_format(type = 'pandas',
@@ -102,6 +123,7 @@ data_df = data['train'][:]
 data_df = (data_df
            .set_index(keys = 'original_index'))
 
+# Make embeddings into ND arrays
 data_df[['tra_aa_encoded',
          'trb_aa_encoded']] = (data_df[['tra_aa_encoded',
                                         'trb_aa_encoded']]
@@ -145,10 +167,8 @@ for i in range(len(cdr_name_tuple)):
     data_df[cdr_name] = data_df.apply(func = lambda x: x[tcr_name][x[cdr_start_name] + 1: x[cdr_end_name] + 1], # Add one due to <CLS> token
                                       axis = 1)
 
-# Make embeddings into ND arrays
 data_df = (data_df
-           .filter(items = cdr_name_tuple)
-           .applymap(func = lambda x: np.vstack(x)))
+           .filter(items = cdr_name_tuple))
 
 
 # Save embeddings

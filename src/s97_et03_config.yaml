@@ -3,3 +3,4 @@ default:
     embedder_name_tcr: prottrans_t5_xl_u50
     embedder_source_tcr: bio_embeddings
     embedder_batch_size_tcr: null
+    embedder_backend_tcr: null
